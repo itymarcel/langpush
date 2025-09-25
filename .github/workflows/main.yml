@@ -1,0 +1,18 @@
+name: Daily Web Push
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call broadcast securely
+        run: |
+          curl -sS -X POST "$PUBLIC_URL/admin/broadcast" \
+            -H "X-Admin-Key: $ADMIN_KEY" \
+            --max-time 20 --retry 3 --retry-delay 5 --fail
+        env:
+          PUBLIC_URL: ${{ secrets.PUBLIC_URL }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
