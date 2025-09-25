@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Lingua Ping</title></head>
+<body>
+  <button id="sub">Subscribe</button>
+  <script>
+    async function main() {
+    const reg = await navigator.serviceWorker.register("/sw.js");
+    const key = await (await fetch("/vapidPublicKey")).text();
+    document.getElementById("sub").onclick = async () => {
+        const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key)
+        });
+        await fetch("/subscribe", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify(sub)
+        });
+        alert("Subscribed!");
+    };
+    }
+    function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+    }
+    main();
+  </script>
+</body>
+</html>
