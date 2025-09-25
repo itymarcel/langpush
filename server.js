@@ -41,20 +41,29 @@ app.post("/subscribe", async (req, res) => {
   res.json({ ok: true });
 });
 
-// send test
-app.get("/admin/broadcast", guard, async (req, res) => {
-  const { rows } = await pool.query("SELECT data FROM subs")
+app.post("/admin/broadcast", guard, async (_req, res) => {
+  const { rows } = await pool.query("SELECT id, data FROM subs");
   const { it, en } = randomPhraseNoRepeat();
   const payload = `🇮🇹 ${it}\n🇬🇧 ${en}`;
+
   let sent = 0;
+  let failed = 0;
   for (const row of rows) {
+    const sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
     try {
-      await webpush.sendNotification(JSON.parse(row.data), payload);
+      await webpush.sendNotification(sub, payload);
       sent++;
-    } catch {}
+    } catch (e) {
+      failed++;
+      console.error("Push failed:", e.statusCode, e.body?.toString() || e.message);
+      if (e.statusCode === 410 || e.statusCode === 404) {
+        await pool.query("DELETE FROM subs WHERE id = $1", [row.id]);
+      }
+    }
   }
-  res.json({ ok: true, sent, phrase: { it, en } });
+  res.json({ ok: true, sent, failed, phrase: { it, en } });
 });
+
 
 // serve static site
 app.use(express.static("public"));
