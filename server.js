@@ -35,10 +35,31 @@ app.get("/admin/subs", guard, async (req, res) => {
 });
 
 
-// store subscription
 app.post("/subscribe", async (req, res) => {
-  await pool.query("INSERT INTO subs (data) VALUES ($1)", [req.body]);
+  const sub = req.body;
+  const endpoint = sub?.endpoint;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+
+  // de-dupe the endpoint (no schema change needed)
+  await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+  await pool.query("INSERT INTO subs (data) VALUES ($1)", [JSON.stringify(sub)]);
   res.json({ ok: true });
+});
+
+// 1) check if a subscription exists (by endpoint)
+app.get("/subscribe/exists", async (req, res) => {
+  const endpoint = req.query.endpoint;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  const { rows } = await pool.query("SELECT 1 FROM subs WHERE data->>'endpoint' = $1 LIMIT 1", [endpoint]);
+  res.json({ ok: true, exists: rows.length > 0 });
+});
+
+// 2) remove subscription (by endpoint)
+app.delete("/subscribe", async (req, res) => {
+  const endpoint = req.body?.endpoint || req.query.endpoint;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  const r = await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+  res.json({ ok: true, deleted: r.rowCount });
 });
 
 app.post("/admin/broadcast", guard, async (_req, res) => {
