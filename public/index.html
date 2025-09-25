@@ -1,37 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8"><title>langpush</title>
-    <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <meta name="theme-color" content="#ffffff">
+  <meta charset="utf-8" />
+  <title>Lingua Push</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <meta name="theme-color" content="#ffffff" />
+  <style>
+    #installBtn { display:none; padding:10px 14px; border:0; border-radius:10px; font-weight:600; }
+    #iosTip { display:none; margin-top:10px; font-size:14px; }
+  </style>
 </head>
 <body>
-  <button style="font-size:larger" id="sub">Get Daily Italian <> English Phrases xx</button>
+  <button id="installBtn">Install app</button>
+  <div id="iosTip">On iPhone: open in Safari → <b>Share</b> → <b>Add to Home Screen</b>.</div>
+
+  <button id="sub">Subscribe to notifications</button>
+
   <script>
-    async function main() {
-    const reg = await navigator.serviceWorker.register("/sw.js");
-    const key = await (await fetch("/vapidPublicKey")).text();
-    document.getElementById("sub").onclick = async () => {
+    // existing SW + subscribe (keep your version if you already have it)
+    async function setupPush() {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      const key = await (await fetch("/vapidPublicKey")).text();
+      document.getElementById("sub").onclick = async () => {
         const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(key)
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(key)
         });
         await fetch("/subscribe", {
-            method:"POST", headers:{"Content-Type":"application/json"},
-            body: JSON.stringify(sub)
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify(sub)
         });
         alert("Subscribed!");
-    };
+      };
     }
     function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = atob(base64);
-    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+      const padding = "=".repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const rawData = atob(base64);
+      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
     }
-    main();
+    setupPush();
   </script>
+
+  <script src="/install.js" defer></script>
 </body>
 </html>
