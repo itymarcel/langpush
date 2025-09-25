@@ -16,6 +16,17 @@ app.get("/vapidPublicKey", (req, res) => {
   res.send(VAPID_PUBLIC_KEY);
 });
 
+function guard(req, res, next) {
+  if (req.get("X-Admin-Key") !== process.env.ADMIN_KEY) return res.sendStatus(401);
+  next();
+}
+
+// count + sample
+app.get("/admin/subs", guard, (req, res) => {
+  const rows = db.prepare("SELECT id, data FROM subs ORDER BY id DESC").all();
+  res.json({ count: rows.length, rows: rows.slice(0, 25) }); // cap output
+});
+
 
 // store subscription
 app.post("/subscribe", (req, res) => {
@@ -24,7 +35,7 @@ app.post("/subscribe", (req, res) => {
 });
 
 // send test
-app.get("/broadcast", async (req, res) => {
+app.get("/admin/broadcast", guard, async (req, res) => {
   const rows = db.prepare("SELECT data FROM subs").all();
   const phrase = "🇮🇹 Buongiorno!\n🇬🇧 Good morning!";
   let sent = 0;

@@ -1,20 +1,26 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>Lingua Ping</title></head>
+<head>
+    <meta charset="utf-8"><title>langpush</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <meta name="theme-color" content="#ffffff">
+</head>
 <body>
-  <button id="sub">Subscribe</button>
+  <button style="font-size:larger" id="sub">Get Daily Italian <> English Phrases xx</button>
   <script>
     async function main() {
     const reg = await navigator.serviceWorker.register("/sw.js");
     const key = await (await fetch("/vapidPublicKey")).text();
     document.getElementById("sub").onclick = async () => {
         const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(key)
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(key)
         });
         await fetch("/subscribe", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify(sub)
+            method:"POST", headers:{"Content-Type":"application/json"},
+            body: JSON.stringify(sub)
         });
         alert("Subscribed!");
     };
