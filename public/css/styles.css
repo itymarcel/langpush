@@ -127,15 +127,26 @@ h1 {
   padding: 10px 20px;
   font-size: 14px;
   cursor: pointer;
-  text-align: center;
+  text-align: center !important;
+  text-align-last: center;
   outline: none;
   transition: border-color 0.2s;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
   font-weight: 600;
-  background-color: rgba(0, 0, 255, 0.01);
-  background-image: none;
+  background: rgba(0, 0, 255, 0.01) !important;
+}
+
+/* Extra Safari arrow removal */
+#language-select::-ms-expand {
+  display: none;
+}
+
+#language-select::-webkit-inner-spin-button,
+#language-select::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 #language-select:disabled {
