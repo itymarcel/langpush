@@ -1,205 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>Lingua Push</title>
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Favicon for all browsers -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+  <!-- Apple touch icon -->
   <link rel="apple-touch-icon" href="/icon-192.png" />
+
+  <!-- Theme -->
   <meta name="theme-color" content="#ffffff" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      margin: 0;
-      padding: 20px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background-color: #f9f9f9;
-    }
-
-    #installBtn {
-      display: none;
-      padding: 15px 30px;
-      border: 0;
-      border-radius: 100%;
-      font-weight: 600;
-      background-color: #007bff;
-      color: white;
-      font-size: 14px;
-      cursor: pointer;
-      margin-bottom: 20px;
-    }
-
-    #iosTip {
-      display: none;
-      width: 100%;
-      font-size: 14px;
-      text-align: center;
-      color: #495057;
-    }
-
-    #iosTipAction {
-        display: inline-flex;
-        align-items: center;
-        gap:4px;
-      background-color: rgba(0, 0, 0, 0.01);
-      border: 1px dotted rgba(0, 0, 0, 0.1);
-      padding: 10px 20px;
-      border-radius: 9999px;
-      margin-top: 10px;
-    }
-    #iosTipAction > span {
-        font-weight: 500;
-        display: inline-flex;
-        align-items:center;
-        gap:1px;
-    }
-
-    .ios-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 14px;
-      height: 14px;
-      vertical-align: middle;
-      stroke-width: 3px;
-    }
-
-    #main-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      flex: 1;
-      max-width: 400px;
-      width: 100%;
-    }
-
-    h1 {
-      font-size: 14px;
-      color: #333;
-      font-weight: 800;
-      margin:0;
-    }
-
-    #language-container {
-      margin-bottom: 2rem;
-      width: 100%;
-    }
-
-    #language-container label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-      color: rgba(0, 0, 0, 0.7);
-      font-size: 14px;
-    }
-
-    #language-select {
-      border: 1px solid #0000FF;
-      border-radius: 9999px;
-      padding: 10px 20px;
-      font-size: 14px;
-      cursor: pointer;
-      text-align: center;
-      outline: none;
-      transition: border-color 0.2s;
-      appearance: none;
-      font-weight: 600;
-      background-color: rgba(0, 0, 255, 0.01);
-    }
-
-    #language-select:disabled {
-        border-color: rgba(0, 0, 255, 0.2);
-    }
-
-    #language-select:focus {
-      border-color: #4169e1;
-    }
-
-    #sub {
-      background-color: rgba(0, 0, 255, 0.9);
-      color: white;
-      border: 1px solid rgba(0, 0, 255, 1);
-      border-radius: 9999px;
-      padding: 10px 20px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: background-color 0.2s, transform 0.1s;
-      justify-content: center;
-    }
-
-    #sub:hover:not(:disabled) {
-      background-color: rgba(0, 0, 255, 1);
-    }
-
-    #sub:disabled {
-      background-color: rgba(0, 0, 255, 0.1);
-      border-style: dashed;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    #sub .ios-icon {
-      width: 14px !important;
-      height: 14px !important;
-    }
-    .headline-container {
-        display: flex;
-        flex-direction: column;
-        gap:4px;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-    #github {
-        font-size:10px;
-        font-weight:bold;
-        display: flex;
-        gap: 2px;
-        align-items: center;
-        text-transform: uppercase;
-        color: rgba(0, 0, 0, 0.5);
-    }
-    .rotating {
-        animation: rotate 1s linear infinite;
-        color: rgba(0, 0, 255, 1)
-    }
-    @keyframes rotate {
-        from {transform: rotate(0deg)}
-        to {transform: rotate(360deg)}
-    }
-
-  </style>
+  <link rel="stylesheet" href="/css/styles.css" />
 </head>
 <body>
-  <button id="installBtn"><i data-lucide="download"></i> Install app</button>
+  <button id="installBtn">
+    <i data-lucide="download" class="ios-icon"></i> Install app
+  </button>
 
   <div id="main-container">
     <div class="headline-container">
-        <h1>LANGPUSH</h1>
-        <div id="github">
-            <a href='https://github.com/itymarcel/langpush' target='_blank'><i data-lucide='github' class='ios-icon'></i> github</a>
-        </div>
+      <h1><i data-lucide='languages' class='ios-icon'></i> LANGPUSH</h1>
+      <div id="github">
+        <a href='https://github.com/itymarcel/langpush' target='_blank'>
+          see on github
+        </a>
+      </div>
     </div>
 
     <div id="iosTip">
-        For push notifications to work, on iPhone this app needs to be added to the homescreen.
-        <div id="iosTipAction">
-            <span><i data-lucide="share" class="ios-icon"></i> Share</span> then <span><i data-lucide="plus-square" class="ios-icon"></i> Add to Home Screen</span>
-        </div>
+      For push notifications to work, on iPhone this app needs to be added to the homescreen.
+      <div id="iosTipAction">
+        <span><i data-lucide="share" class="ios-icon"></i> Share</span> then
+        <span><i data-lucide="plus-square" class="ios-icon"></i> Add to Home Screen</span>
+      </div>
     </div>
 
     <div id="language-container">
@@ -210,208 +49,17 @@
       </select>
     </div>
 
-    <button id="sub"><i data-lucide="bell" class="ios-icon"></i> Subscribe</button>
-    <div id="subscribe-info" style="display: none; margin-top: 1rem; font-size: 12px; color: rgba(0, 0, 0, 0.6); text-align: center; max-width: 300px;">
-      When subscribed, you'll receive 3 notifications a day with hand picked <span id="language-name">Italian</span> ↔ English phrase pairs.
+    <button id="sub">
+      <i data-lucide="bell" class="ios-icon"></i> Subscribe
+    </button>
+
+    <div id="subscribe-info" style="display: none;">
+      When subscribed, you'll receive 3 notifications a day with hand picked
+      <span id="language-name">Italian</span> ↔ English phrase pairs.
     </div>
   </div>
 
-  <script>
-    const btn = document.getElementById("sub");
-    let reg; // service worker registration cache
-
-    function setBtn(state) {
-        const subscribeInfo = document.getElementById("subscribe-info");
-
-        if (state === "sub") {
-            btn.innerHTML = '<i data-lucide="bell-off" class="ios-icon"></i> Unsubscribe';
-            btn.disabled = false;
-            subscribeInfo.style.display = "none";
-        }
-        else if (state === "unsub") {
-            btn.innerHTML = '<i data-lucide="bell" class="ios-icon"></i> Subscribe';
-            btn.disabled = false;
-            subscribeInfo.style.display = "block";
-
-            // Update language name in the info text
-            const languageSelect = document.getElementById("language-select");
-            const languageName = document.getElementById("language-name");
-            const selectedValue = languageSelect.value;
-            languageName.textContent = selectedValue === "spanish" ? "Spanish" : "Italian";
-        }
-        else {
-            btn.innerHTML = '<i data-lucide="loader" class="ios-icon rotating"></i>';
-            btn.disabled = true;
-            subscribeInfo.style.display = "none";
-        }
-        // Re-render lucide icons
-        lucide.createIcons();
-    }
-
-    async function readySW() {
-        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        btn.innerHTML = '<i data-lucide="x-circle" class="ios-icon"></i> Push not supported';
-        btn.disabled = true;
-        lucide.createIcons();
-        return null;
-        }
-        if (!reg) {
-        await navigator.serviceWorker.register("/sw.js");
-        reg = await navigator.serviceWorker.ready;
-        }
-        return reg;
-    }
-
-    async function getVapidKey() {
-        return (await (await fetch("/vapidPublicKey")).text()).trim();
-    }
-
-    function toUint8(base64) {
-        const pad = "=".repeat((4 - base64.length % 4) % 4);
-        const b64 = (base64 + pad).replace(/-/g, "+").replace(/_/g, "/");
-        const raw = atob(b64);
-        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-    }
-
-    // ---- core: sync button label with actual state (SW + server)
-    async function syncButton() {
-        setBtn("…");
-        const r = await readySW();
-        if (!r) return;
-        const sub = await r.pushManager.getSubscription();
-        let existsOnServer = false;
-        let savedLanguage = null;
-
-        const languageSelect = document.getElementById("language-select");
-
-        if (sub) {
-        try {
-            const q = new URLSearchParams({ endpoint: sub.endpoint }).toString();
-            const resp = await fetch(`/subscribe/exists?${q}`);
-            const json = await resp.json();
-            existsOnServer = !!json.exists;
-
-            // If subscription exists, we need to get the saved language from server
-            if (existsOnServer) {
-                // Get subscription data from server to retrieve language preference
-                const adminResp = await fetch('/admin/subs', {
-                    headers: { 'X-Admin-Key': 'local-dev-admin-key' }
-                });
-                if (adminResp.ok) {
-                    const adminData = await adminResp.json();
-                    const userSub = adminData.rows.find(row => {
-                        const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-                        return data.endpoint === sub.endpoint;
-                    });
-                    if (userSub) {
-                        const data = typeof userSub.data === 'string' ? JSON.parse(userSub.data) : userSub.data;
-                        savedLanguage = data.language || 'italian';
-                    }
-                }
-            }
-        } catch {}
-        }
-
-        const isSubscribed = sub && existsOnServer;
-        setBtn(isSubscribed ? "sub" : "unsub");
-
-        // Update dropdown state
-        const languageLabel = document.querySelector('#language-container label');
-        if (savedLanguage) {
-            languageSelect.value = savedLanguage;
-        }
-        languageSelect.disabled = isSubscribed;
-
-        // Update label text based on subscription status
-        languageLabel.textContent = isSubscribed ? "You are subscribed to" : "Choose language";
-
-        return { sub, existsOnServer, savedLanguage };
-    }
-
-    // ---- click handler toggles and then re-syncs
-    btn.addEventListener("click", async () => {
-        const r = await readySW(); if (!r) return;
-
-        // refresh state at click time
-        const { sub, existsOnServer } = await syncButton();
-
-        // Unsubscribe flow
-        if (sub && existsOnServer) {
-        setBtn("…");
-        const endpoint = sub.endpoint;
-        try { await sub.unsubscribe(); } catch {}
-        await fetch("/subscribe", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ endpoint })
-        });
-        await syncButton();
-        return;
-        }
-
-        // Subscribe flow
-        if (Notification.permission === "denied") {
-        alert("Notifications are blocked. Enable them in your browser settings.");
-        return;
-        }
-
-        try {
-        setBtn("…");
-        if (Notification.permission !== "granted") await Notification.requestPermission();
-        const key = await getVapidKey();
-        const newSub = await r.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: toUint8(key)
-        });
-
-        // Get selected language
-        const languageSelect = document.getElementById("language-select");
-        const selectedLanguage = languageSelect.value;
-
-        // Include language preference in subscription data
-        const subscriptionData = {
-            ...newSub.toJSON(),
-            language: selectedLanguage
-        };
-
-        await fetch("/subscribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(subscriptionData)
-        });
-        await syncButton();
-        } catch (e) {
-        console.error(e);
-        setBtn("unsub");
-        alert("Subscription failed.");
-        }
-    });
-
-    // Update subscribe info when language selection changes
-    document.getElementById("language-select").addEventListener("change", (e) => {
-        const languageName = document.getElementById("language-name");
-        const selectedValue = e.target.value;
-        languageName.textContent = selectedValue === "spanish" ? "Spanish" : "Italian";
-    });
-
-    // run once on load
-    (async () => { await syncButton(); })();
-    // Initialize icons when page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
-    });
-
-    // Live reload for development
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      const eventSource = new EventSource('/live-reload');
-      eventSource.onmessage = (event) => {
-        if (event.data === 'reload') {
-          location.reload();
-        }
-      };
-    }
-    </script>
-
+  <script src="/js/app.js"></script>
   <script src="/install.js" defer></script>
 </body>
 </html>
