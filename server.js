@@ -199,8 +199,11 @@ app.use(express.static("public"));
 const port = process.env.PORT || 3000;
 const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
-// Try to use HTTPS in development if certificates exist
-if (process.env.NODE_ENV !== 'production') {
+// In production, use HTTP only
+if (process.env.NODE_ENV === 'production') {
+  app.listen(port, host, () => console.log(`Server running on http://${host}:${port}`));
+} else {
+  // Try to use HTTPS in development if certificates exist
   try {
     const options = {
       key: fs.readFileSync('./localhost+2-key.pem'),
@@ -215,6 +218,4 @@ if (process.env.NODE_ENV !== 'production') {
       console.log(`Server running on http://${host}:${port} (no HTTPS certificates found)`);
     });
   }
-} else {
-  app.listen(port, host, () => console.log(`Server running on ${host}:${port}`));
 }
