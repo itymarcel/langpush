@@ -1,4 +1,4 @@
-export const PHRASES = [
+export const ITALIAN_PHRASES = [
   { it: "Buongiorno!", en: "Good morning!" },
   { it: "Buonasera!", en: "Good evening!" },
   { it: "Buonanotte!", en: "Good night!" },
@@ -67,12 +67,27 @@ export const PHRASES = [
   { it: "Figurati.", en: "Don’t mention it." }
 ];
 
-let lastIdx = -1;
-export function randomPhraseNoRepeat() {
-  if (PHRASES.length === 0) return { it: "Ciao!", en: "Hi!" };
-  let idx;
-  do { idx = Math.floor(Math.random() * PHRASES.length); }
-  while (PHRASES.length > 1 && idx === lastIdx);
-  lastIdx = idx;
-  return PHRASES[idx];
+export const SPANISH_PHRASES = [
+  { es: "¡Hola!", en: "Hello!" }
+];
+
+let lastItalianIdx = -1;
+let lastSpanishIdx = -1;
+
+export function randomPhraseNoRepeat(language = 'italian') {
+  if (language === 'spanish') {
+    if (SPANISH_PHRASES.length === 0) return { es: "¡Hola!", en: "Hello!" };
+    let idx;
+    do { idx = Math.floor(Math.random() * SPANISH_PHRASES.length); }
+    while (SPANISH_PHRASES.length > 1 && idx === lastSpanishIdx);
+    lastSpanishIdx = idx;
+    return SPANISH_PHRASES[idx];
+  } else {
+    if (ITALIAN_PHRASES.length === 0) return { it: "Ciao!", en: "Hi!" };
+    let idx;
+    do { idx = Math.floor(Math.random() * ITALIAN_PHRASES.length); }
+    while (ITALIAN_PHRASES.length > 1 && idx === lastItalianIdx);
+    lastItalianIdx = idx;
+    return ITALIAN_PHRASES[idx];
+  }
 }

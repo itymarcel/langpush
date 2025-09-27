@@ -7,7 +7,7 @@ let deferredPrompt;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  installBtn.style.display = "inline-block";
+  installBtn.style.display = "block";
 });
 
 installBtn.addEventListener("click", async () => {
@@ -20,7 +20,7 @@ installBtn.addEventListener("click", async () => {
 
 // Hide UI when already installed
 window.addEventListener("appinstalled", () => {
-  installBtn.style.display = "none";
+  installBtn.style.display = "block";
   if (iosTip) iosTip.remove();
 });
 
@@ -29,4 +29,13 @@ const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 if (isIos && !isStandalone) {
   iosTip.style.display = "block";
+  // Hide subscribe button and language dropdown on iOS when not in standalone mode
+  const subBtn = document.getElementById("sub");
+  const languageDropdown = document.getElementById("language-container");
+  if (subBtn) {
+    subBtn.style.display = "none";
+  }
+  if (languageDropdown) {
+    languageDropdown.style.display = "none";
+  }
 }

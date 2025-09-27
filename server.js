@@ -3,13 +3,22 @@ import bodyParser from "body-parser";
 import pkg from 'pg'
 import webpush from "web-push";
 import { randomPhraseNoRepeat } from "./phrases.js";
+import { config } from 'dotenv';
+import https from 'https';
+import fs from 'fs';
+import chokidar from 'chokidar';
+
+config();
 
 const { Pool } = pkg
 
 const app = express();
 app.use(bodyParser.json());
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }})
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+})
 await pool.query(`CREATE TABLE IF NOT EXISTS subs (
   id BIGSERIAL PRIMARY KEY,
   data JSONB NOT NULL
@@ -64,15 +73,33 @@ app.delete("/subscribe", async (req, res) => {
 
 app.post("/admin/broadcast", guard, async (_req, res) => {
   const { rows } = await pool.query("SELECT id, data FROM subs");
-  const { it, en } = randomPhraseNoRepeat();
-  const payload = `🇮🇹 ${it}\n🇬🇧 ${en}`;
 
   let sent = 0;
   let failed = 0;
+  let phrases = {};
+
   for (const row of rows) {
     const sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+    const language = sub.language || 'italian'; // Default to Italian if no language specified
+
+    // Generate phrase for this language if we haven't already
+    if (!phrases[language]) {
+      phrases[language] = randomPhraseNoRepeat(language);
+    }
+
+    const phrase = phrases[language];
+    let payload;
+
+    if (language === 'spanish') {
+      payload = `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`;
+    } else {
+      payload = `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`;
+    }
+
     try {
-      await webpush.sendNotification(sub, payload);
+      // Create clean subscription object without our custom language field
+      const { language: _, ...cleanSub } = sub;
+      await webpush.sendNotification(cleanSub, payload);
       sent++;
     } catch (e) {
       failed++;
@@ -82,11 +109,58 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
       }
     }
   }
-  res.json({ ok: true, sent, failed, phrase: { it, en } });
+  res.json({ ok: true, sent, failed, phrases });
 });
 
+
+// Live reload for development
+let clients = [];
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/live-reload', (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+
+    clients.push(res);
+
+    req.on('close', () => {
+      clients = clients.filter(client => client !== res);
+    });
+  });
+
+  // Watch for file changes in public directory
+  const watcher = chokidar.watch('./public', {ignored: /^\./, persistent: true});
+  watcher.on('change', () => {
+    clients.forEach(client => {
+      client.write('data: reload\n\n');
+    });
+  });
+}
 
 // serve static site
 app.use(express.static("public"));
 
-app.listen(process.env.PORT || 3000, () => console.log("Server running"));
+const port = process.env.PORT || 3000;
+
+// Try to use HTTPS in development if certificates exist
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const options = {
+      key: fs.readFileSync('./localhost+2-key.pem'),
+      cert: fs.readFileSync('./localhost+2.pem')
+    };
+    https.createServer(options, app).listen(port, () => {
+      console.log(`Server running on https://localhost:${port}`);
+    });
+  } catch (err) {
+    // Fallback to HTTP if certificates don't exist
+    app.listen(port, () => {
+      console.log(`Server running on http://localhost:${port} (no HTTPS certificates found)`);
+    });
+  }
+} else {
+  app.listen(port, () => console.log("Server running"));
+}
