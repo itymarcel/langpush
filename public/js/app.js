@@ -91,7 +91,9 @@ class LinguaPush {
   updateLanguageDisplay(languageValue) {
     const languageName = document.getElementById("language-name");
     if (languageName) {
-      languageName.textContent = languageValue === "spanish" ? "Spanish" : "Italian";
+      languageName.textContent = languageValue === "spanish" ? "Spanish" :
+                                languageValue === "french" ? "French" :
+                                languageValue === "japanese" ? "Japanese" : "Italian";
     }
   }
 

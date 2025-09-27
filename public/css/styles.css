@@ -16,6 +16,8 @@ body {
   flex-direction: column;
   align-items: center;
   background-color: #f9f9f9;
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
 }
 
 /* Layout */

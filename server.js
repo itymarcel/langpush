@@ -92,6 +92,10 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
 
     if (language === 'spanish') {
       payload = `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`;
+    } else if (language === 'french') {
+      payload = `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`;
+    } else if (language === 'japanese') {
+      payload = `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`;
     } else {
       payload = `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`;
     }
