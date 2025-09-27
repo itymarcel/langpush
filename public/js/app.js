@@ -98,7 +98,7 @@ class LinguaPush {
                         languageValue === "japanese" ? "Japanese" : "Italian";
 
     if (subscribeInfo) {
-      subscribeInfo.innerHTML = `You're receiving 3 hand picked ${languageName} ↔ English phrase pairs a day.`;
+      subscribeInfo.innerHTML = `You're receiving <b>3</b> hand picked <br/>${languageName} ↔ English phrase pairs a day.`;
     }
   }
 
@@ -112,7 +112,7 @@ class LinguaPush {
                         languageValue === "japanese" ? "Japanese" : "Italian";
 
     if (subscribeInfo) {
-      subscribeInfo.innerHTML = `When you subscribe, you'll receive 3 notifications a day with hand picked <span id="language-name">${languageName}</span> ↔ English phrase pairs.`;
+      subscribeInfo.innerHTML = `Once subscribed, you'll receive <br/><b>3 notifications a day</b> with hand picked <br/><span id="language-name">${languageName}</span> ↔ English phrase pairs.`;
     }
   }
 
