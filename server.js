@@ -31,6 +31,10 @@ app.get("/vapidPublicKey", (req, res) => {
   res.send(VAPID_PUBLIC_KEY);
 });
 
+app.get("/admin-key", (req, res) => {
+  res.send(process.env.ADMIN_KEY);
+});
+
 function guard(req, res, next) {
   if (req.get("X-Admin-Key") !== process.env.ADMIN_KEY) return res.sendStatus(401);
   next();
@@ -116,6 +120,51 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
   res.json({ ok: true, sent, failed, phrases });
 });
 
+app.post("/admin/send-now", guard, async (req, res) => {
+  const { endpoint } = req.body;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+
+  try {
+    // Find the subscription by endpoint
+    const { rows } = await pool.query("SELECT id, data FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Subscription not found" });
+    }
+
+    const row = rows[0];
+    const sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+    const language = sub.language || 'italian';
+
+    // Generate a phrase for this user's language
+    const phrase = randomPhraseNoRepeat(language);
+    let payload;
+
+    if (language === 'spanish') {
+      payload = `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`;
+    } else if (language === 'french') {
+      payload = `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`;
+    } else if (language === 'japanese') {
+      payload = `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`;
+    } else {
+      payload = `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`;
+    }
+
+    // Create clean subscription object without our custom language field
+    const { language: _, ...cleanSub } = sub;
+    await webpush.sendNotification(cleanSub, payload);
+
+    res.json({ ok: true, sent: 1 });
+  } catch (error) {
+    console.error("Send now failed:", error);
+
+    // Clean up invalid subscriptions
+    if (error.statusCode === 410 || error.statusCode === 404) {
+      await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+    }
+
+    res.status(500).json({ ok: false, error: "Failed to send notification" });
+  }
+});
 
 // Live reload for development
 let clients = [];

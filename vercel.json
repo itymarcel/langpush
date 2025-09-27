@@ -1,0 +1,19 @@
+{
+  "rewrites": [
+    {
+      "source": "/sw.js",
+      "destination": "/public/sw.js"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    }
+  ]
+}

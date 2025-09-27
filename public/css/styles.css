@@ -82,9 +82,7 @@ h1 {
   margin-bottom: 20px;
 }
 
-#sub {
-  background-color: rgba(0, 0, 255, 0.9);
-  color: white;
+#sendNow, #sub {
   border: 1px solid rgba(0, 0, 255, 1);
   border-radius: 9999px;
   padding: 10px 20px;
@@ -96,10 +94,34 @@ h1 {
   gap: 4px;
   transition: background-color 0.2s, transform 0.1s;
   justify-content: center;
+  margin-bottom: 10px;
+}
+
+#sendNow {
+  background-color: rgba(0, 0, 255, 0.9);
+  color: white;
+}
+
+#sendNow:hover:not(:disabled) {
+  background-color: rgba(0, 0, 255, 1);
+}
+
+#sub {
+  background-color: rgba(0, 0, 255, 0.9);
+  color: white;
 }
 
 #sub:hover:not(:disabled) {
   background-color: rgba(0, 0, 255, 1);
+}
+
+#sub.outline {
+  background-color: transparent;
+  color: #0000ff;
+}
+
+#sub.outline:hover:not(:disabled) {
+  background-color: rgba(0, 0, 255, 0.05);
 }
 
 #sub:disabled {

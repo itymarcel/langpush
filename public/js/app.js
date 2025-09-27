@@ -5,6 +5,7 @@
 class LinguaPush {
   constructor() {
     this.btn = document.getElementById("sub");
+    this.sendNowBtn = document.getElementById("sendNow");
     this.reg = null; // service worker registration cache
 
     this.init();
@@ -27,6 +28,9 @@ class LinguaPush {
     // Main subscription button
     this.btn.addEventListener("click", () => this.handleSubscriptionToggle());
 
+    // Send Now button
+    this.sendNowBtn.addEventListener("click", () => this.handleSendNow());
+
     // Language selection change
     document.getElementById("language-select").addEventListener("change", (e) => {
       this.updateLanguageDisplay(e.target.value);
@@ -48,12 +52,16 @@ class LinguaPush {
       case "sub":
         this.btn.innerHTML = '<i data-lucide="bell-off" class="ios-icon"></i> Unsubscribe';
         this.btn.disabled = false;
+        this.btn.classList.add("outline");
+        this.sendNowBtn.style.display = "flex";
         subscribeInfo.style.display = "none";
         break;
 
       case "unsub":
         this.btn.innerHTML = '<i data-lucide="bell" class="ios-icon"></i> Subscribe';
         this.btn.disabled = false;
+        this.btn.classList.remove("outline");
+        this.sendNowBtn.style.display = "none";
 
         // Only show subscribe info if not on iOS or if on iOS and installed
         if (this.shouldShowSubscribeInfo()) {
@@ -67,6 +75,8 @@ class LinguaPush {
       default:
         this.btn.innerHTML = '<i data-lucide="loader" class="ios-icon rotating"></i>';
         this.btn.disabled = true;
+        this.btn.classList.remove("outline");
+        this.sendNowBtn.style.display = "none";
         subscribeInfo.style.display = "none";
         break;
     }
@@ -178,8 +188,11 @@ class LinguaPush {
    */
   async getSavedLanguage(endpoint) {
     try {
+      const adminKeyResponse = await fetch('/admin-key');
+      const adminKey = await adminKeyResponse.text();
+
       const response = await fetch('/admin/subs', {
-        headers: { 'X-Admin-Key': 'local-dev-admin-key' }
+        headers: { 'X-Admin-Key': adminKey }
       });
 
       if (response.ok) {
@@ -317,6 +330,55 @@ class LinguaPush {
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
     }
+  }
+
+  /**
+   * Handle Send One Now button click
+   */
+  async handleSendNow() {
+    this.sendNowBtn.innerHTML = '<i data-lucide="loader" class="ios-icon rotating"></i> Sending...';
+    this.sendNowBtn.disabled = true;
+
+    try {
+      const serviceWorker = await this.readyServiceWorker();
+      if (!serviceWorker) return;
+
+      const subscription = await serviceWorker.pushManager.getSubscription();
+      if (!subscription) return;
+
+      const adminKeyResponse = await fetch('/admin-key');
+      const adminKey = await adminKeyResponse.text();
+
+      const response = await fetch("/admin/send-now", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Key": adminKey
+        },
+        body: JSON.stringify({ endpoint: subscription.endpoint })
+      });
+
+      if (response.ok) {
+        this.sendNowBtn.innerHTML = '<i data-lucide="check" class="ios-icon"></i> Sent!';
+        setTimeout(() => {
+          this.sendNowBtn.innerHTML = '<i data-lucide="send" class="ios-icon"></i> Send One Now';
+          this.sendNowBtn.disabled = false;
+          lucide.createIcons();
+        }, 2000);
+      } else {
+        throw new Error('Failed to send notification');
+      }
+    } catch (error) {
+      console.error("Send now failed:", error);
+      this.sendNowBtn.innerHTML = '<i data-lucide="x" class="ios-icon"></i> Failed';
+      setTimeout(() => {
+        this.sendNowBtn.innerHTML = '<i data-lucide="send" class="ios-icon"></i> Send One Now';
+        this.sendNowBtn.disabled = false;
+        lucide.createIcons();
+      }, 2000);
+    }
+
+    lucide.createIcons();
   }
 
   /**
