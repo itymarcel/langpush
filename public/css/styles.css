@@ -238,10 +238,13 @@ h1 {
   height: 14px !important;
 }
 
+.blue-text {
+  color: rgba(0, 0, 255, 1)
+}
+
 /* Animations */
 .rotating {
   animation: rotate 1s linear infinite;
-  color: rgba(0, 0, 255, 1);
 }
 
 @keyframes rotate {

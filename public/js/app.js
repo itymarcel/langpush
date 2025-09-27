@@ -54,7 +54,7 @@ class LinguaPush {
         this.btn.disabled = false;
         this.btn.classList.add("outline");
         this.sendNowBtn.style.display = "flex";
-        subscribeInfo.style.display = "none";
+        this.updateSubscribedMessage(document.getElementById("language-select").value);
         break;
 
       case "unsub":
@@ -62,22 +62,15 @@ class LinguaPush {
         this.btn.disabled = false;
         this.btn.classList.remove("outline");
         this.sendNowBtn.style.display = "none";
-
-        // Only show subscribe info if not on iOS or if on iOS and installed
-        if (this.shouldShowSubscribeInfo()) {
-          subscribeInfo.style.display = "block";
-          this.updateLanguageDisplay(document.getElementById("language-select").value);
-        } else {
-          subscribeInfo.style.display = "none";
-        }
+        this.updateUnsubscribedMessage(document.getElementById("language-select").value);
         break;
 
       default:
-        this.btn.innerHTML = '<i data-lucide="loader" class="ios-icon rotating"></i>';
+        this.btn.innerHTML = '<i data-lucide="loader" class="ios-icon rotating blue-text"></i>';
         this.btn.disabled = true;
         this.btn.classList.remove("outline");
         this.sendNowBtn.style.display = "none";
-        subscribeInfo.style.display = "none";
+        subscribeInfo.innerHTML = "";
         break;
     }
 
@@ -96,14 +89,30 @@ class LinguaPush {
   }
 
   /**
-   * Update language display in subscribe info
+   * Update subscribed message (when user is subscribed)
    */
-  updateLanguageDisplay(languageValue) {
-    const languageName = document.getElementById("language-name");
-    if (languageName) {
-      languageName.textContent = languageValue === "spanish" ? "Spanish" :
-                                languageValue === "french" ? "French" :
-                                languageValue === "japanese" ? "Japanese" : "Italian";
+  updateSubscribedMessage(languageValue) {
+    const subscribeInfo = document.getElementById("subscribe-info");
+    const languageName = languageValue === "spanish" ? "Spanish" :
+                        languageValue === "french" ? "French" :
+                        languageValue === "japanese" ? "Japanese" : "Italian";
+
+    if (subscribeInfo) {
+      subscribeInfo.innerHTML = `You're receiving 3 hand picked ${languageName} ↔ English phrase pairs a day.`;
+    }
+  }
+
+  /**
+   * Update unsubscribed message (when user is not subscribed)
+   */
+  updateUnsubscribedMessage(languageValue) {
+    const subscribeInfo = document.getElementById("subscribe-info");
+    const languageName = languageValue === "spanish" ? "Spanish" :
+                        languageValue === "french" ? "French" :
+                        languageValue === "japanese" ? "Japanese" : "Italian";
+
+    if (subscribeInfo) {
+      subscribeInfo.innerHTML = `When you subscribe, you'll receive 3 notifications a day with hand picked <span id="language-name">${languageName}</span> ↔ English phrase pairs.`;
     }
   }
 
@@ -335,9 +344,41 @@ class LinguaPush {
   /**
    * Handle Send One Now button click
    */
+  setSendButtonState(state) {
+    const sendState = this.sendNowBtn.querySelector('.send-state');
+    const sendingState = this.sendNowBtn.querySelector('.sending-state');
+    const sentState = this.sendNowBtn.querySelector('.sent-state');
+    const failedState = this.sendNowBtn.querySelector('.failed-state');
+
+    // Hide all states
+    sendState.style.display = 'none';
+    sendingState.style.display = 'none';
+    sentState.style.display = 'none';
+    failedState.style.display = 'none';
+
+    // Show the appropriate state
+    switch (state) {
+      case 'send':
+        sendState.style.display = 'block';
+        this.sendNowBtn.disabled = false;
+        break;
+      case 'sending':
+        sendingState.style.display = 'block';
+        this.sendNowBtn.disabled = true;
+        break;
+      case 'sent':
+        sentState.style.display = 'block';
+        this.sendNowBtn.disabled = true;
+        break;
+      case 'failed':
+        failedState.style.display = 'block';
+        this.sendNowBtn.disabled = true;
+        break;
+    }
+  }
+
   async handleSendNow() {
-    this.sendNowBtn.innerHTML = '<i data-lucide="loader" class="ios-icon rotating"></i> Sending...';
-    this.sendNowBtn.disabled = true;
+    this.setSendButtonState('sending');
 
     try {
       const serviceWorker = await this.readyServiceWorker();
@@ -359,26 +400,20 @@ class LinguaPush {
       });
 
       if (response.ok) {
-        this.sendNowBtn.innerHTML = '<i data-lucide="check" class="ios-icon"></i> Sent!';
+        this.setSendButtonState('sent');
         setTimeout(() => {
-          this.sendNowBtn.innerHTML = '<i data-lucide="send" class="ios-icon"></i> Send One Now';
-          this.sendNowBtn.disabled = false;
-          lucide.createIcons();
+          this.setSendButtonState('send');
         }, 2000);
       } else {
         throw new Error('Failed to send notification');
       }
     } catch (error) {
       console.error("Send now failed:", error);
-      this.sendNowBtn.innerHTML = '<i data-lucide="x" class="ios-icon"></i> Failed';
+      this.setSendButtonState('failed');
       setTimeout(() => {
-        this.sendNowBtn.innerHTML = '<i data-lucide="send" class="ios-icon"></i> Send One Now';
-        this.sendNowBtn.disabled = false;
-        lucide.createIcons();
+        this.setSendButtonState('send');
       }, 2000);
     }
-
-    lucide.createIcons();
   }
 
   /**

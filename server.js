@@ -21,8 +21,19 @@ const pool = new Pool({
 })
 await pool.query(`CREATE TABLE IF NOT EXISTS subs (
   id BIGSERIAL PRIMARY KEY,
-  data JSONB NOT NULL
+  data JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`)
+
+// Add created_at column if it doesn't exist (for existing databases)
+await pool.query(`
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='created_at') THEN
+      ALTER TABLE subs ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+  END $$;
+`)
 
 const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, CONTACT_EMAIL } = process.env;
 webpush.setVapidDetails(`mailto:${CONTACT_EMAIL}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -42,7 +53,7 @@ function guard(req, res, next) {
 
 // count + sample
 app.get("/admin/subs", guard, async (req, res) => {
-  const { rows } = await pool.query("SELECT id, data FROM subs ORDER BY id DESC LIMIT 25");
+  const { rows } = await pool.query("SELECT id, data, created_at FROM subs ORDER BY created_at DESC LIMIT 25");
   const { rows: c } = await pool.query("SELECT COUNT(*)::int AS c FROM subs");
   res.json({ count: c[0].c, rows });
 });
@@ -76,7 +87,7 @@ app.delete("/subscribe", async (req, res) => {
 });
 
 app.post("/admin/broadcast", guard, async (_req, res) => {
-  const { rows } = await pool.query("SELECT id, data FROM subs");
+  const { rows } = await pool.query("SELECT id, data, created_at FROM subs");
 
   let sent = 0;
   let failed = 0;
@@ -126,7 +137,7 @@ app.post("/admin/send-now", guard, async (req, res) => {
 
   try {
     // Find the subscription by endpoint
-    const { rows } = await pool.query("SELECT id, data FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+    const { rows } = await pool.query("SELECT id, data, created_at FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
     if (rows.length === 0) {
       return res.status(404).json({ ok: false, error: "Subscription not found" });
     }
@@ -197,7 +208,7 @@ if (process.env.NODE_ENV !== 'production') {
 app.use(express.static("public"));
 
 const port = process.env.PORT || 3000;
-const isProduction = process.env.NODE_ENV === 'production' || process.env.PORT || !fs.existsSync('./localhost+2-key.pem');
+const isProduction = process.env.NODE_ENV === 'production' || !fs.existsSync('./localhost+2-key.pem');
 const host = isProduction ? '0.0.0.0' : 'localhost';
 
 // In production or when no certs exist, use HTTP only

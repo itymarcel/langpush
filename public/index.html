@@ -52,15 +52,26 @@
     </div>
 
     <button id="sendNow" style="display: none;">
-      <i data-lucide="send" class="ios-icon"></i> Send One Now
+      <span class="send-state">
+        <i data-lucide="send" class="ios-icon"></i> Send One Now
+      </span>
+      <span class="sending-state" style="display: none;">
+        <i data-lucide="loader" class="ios-icon rotating"></i> Sending...
+      </span>
+      <span class="sent-state" style="display: none;">
+        <i data-lucide="check" class="ios-icon"></i> Sent!
+      </span>
+      <span class="failed-state" style="display: none;">
+        <i data-lucide="x" class="ios-icon"></i> Failed
+      </span>
     </button>
 
     <button id="sub">
       <i data-lucide="bell" class="ios-icon"></i> Subscribe
     </button>
 
-    <div id="subscribe-info" style="display: none;">
-      When subscribed, you'll receive 3 notifications a day with hand picked
+    <div id="subscribe-info">
+      When you subscribe, you'll receive 3 notifications a day with hand picked
       <span id="language-name">Italian</span> ↔ English phrase pairs.
     </div>
   </div>
