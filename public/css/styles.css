@@ -131,8 +131,11 @@ h1 {
   outline: none;
   transition: border-color 0.2s;
   appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   font-weight: 600;
   background-color: rgba(0, 0, 255, 0.01);
+  background-image: none;
 }
 
 #language-select:disabled {
