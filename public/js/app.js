@@ -224,7 +224,7 @@ class LinguaPush {
         const adminData = await response.json();
         const userSub = adminData.rows.find(row => {
           const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
-          return data.endpoint === endpoint;
+          return data.endpoint === endpoint && !row.deactivated;
         });
 
         if (userSub) {
@@ -290,6 +290,8 @@ class LinguaPush {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint })
       });
+      // Hide last notification when unsubscribed
+      this.hideLastNotification();
       await this.syncButton();
     } catch (error) {
       console.error("Unsubscribe failed:", error);

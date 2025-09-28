@@ -40,23 +40,38 @@ await pool.query(`
 `)
 
 // Add last notification columns if they don't exist (for existing databases)
-await pool.query(`
-  DO $$
-  BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_original') THEN
-      ALTER TABLE subs ADD COLUMN last_phrase_original TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_english') THEN
-      ALTER TABLE subs ADD COLUMN last_phrase_english TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_language') THEN
-      ALTER TABLE subs ADD COLUMN last_phrase_language VARCHAR(20);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_notification_sent_at') THEN
-      ALTER TABLE subs ADD COLUMN last_notification_sent_at TIMESTAMP;
-    END IF;
-  END $$;
-`)
+try {
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_original') THEN
+        ALTER TABLE subs ADD COLUMN last_phrase_original TEXT;
+        RAISE NOTICE 'Added column: last_phrase_original';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_english') THEN
+        ALTER TABLE subs ADD COLUMN last_phrase_english TEXT;
+        RAISE NOTICE 'Added column: last_phrase_english';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_language') THEN
+        ALTER TABLE subs ADD COLUMN last_phrase_language VARCHAR(20);
+        RAISE NOTICE 'Added column: last_phrase_language';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_notification_sent_at') THEN
+        ALTER TABLE subs ADD COLUMN last_notification_sent_at TIMESTAMP;
+        RAISE NOTICE 'Added column: last_notification_sent_at';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='deactivated') THEN
+        ALTER TABLE subs ADD COLUMN deactivated BOOLEAN DEFAULT FALSE;
+        RAISE NOTICE 'Added column: deactivated';
+      END IF;
+    END $$;
+  `);
+  console.log('✅ Database migration completed successfully');
+} catch (error) {
+  console.error('❌ Database migration failed:', error);
+  console.error('Migration error details:', error.message);
+  process.exit(1);
+}
 
 const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, CONTACT_EMAIL } = process.env;
 webpush.setVapidDetails(`mailto:${CONTACT_EMAIL}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -76,7 +91,7 @@ app.get("/last-notification", async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE data->>'endpoint' = $1",
+      "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
       [endpoint]
     );
 
@@ -110,9 +125,27 @@ function guard(req, res, next) {
 
 // count + sample
 app.get("/admin/subs", guard, async (req, res) => {
-  const { rows } = await pool.query("SELECT id, data, created_at FROM subs ORDER BY created_at DESC LIMIT 25");
-  const { rows: c } = await pool.query("SELECT COUNT(*)::int AS c FROM subs");
-  res.json({ count: c[0].c, rows });
+  const showDeactivated = req.query.show_deactivated === 'true';
+
+  let query = "SELECT id, data, created_at, deactivated FROM subs";
+  let countQuery = "SELECT COUNT(*)::int AS c FROM subs";
+
+  if (!showDeactivated) {
+    query += " WHERE deactivated = FALSE OR deactivated IS NULL";
+    countQuery += " WHERE deactivated = FALSE OR deactivated IS NULL";
+  }
+
+  query += " ORDER BY created_at DESC LIMIT 25";
+
+  const { rows } = await pool.query(query);
+  const { rows: c } = await pool.query(countQuery);
+  const { rows: deactivatedCount } = await pool.query("SELECT COUNT(*)::int AS c FROM subs WHERE deactivated = TRUE");
+
+  res.json({
+    count: c[0].c,
+    deactivated_count: deactivatedCount[0].c,
+    rows
+  });
 });
 
 
@@ -121,30 +154,46 @@ app.post("/subscribe", async (req, res) => {
   const endpoint = sub?.endpoint;
   if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
 
-  // de-dupe the endpoint (no schema change needed)
-  await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
-  await pool.query("INSERT INTO subs (data) VALUES ($1)", [JSON.stringify(sub)]);
-  res.json({ ok: true });
+  try {
+    // Check if subscription already exists (active or deactivated)
+    const { rows: existing } = await pool.query("SELECT id, deactivated FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+
+    if (existing.length > 0) {
+      // Reactivate existing subscription and update data
+      await pool.query(
+        "UPDATE subs SET data = $1, deactivated = FALSE WHERE data->>'endpoint' = $2",
+        [JSON.stringify(sub), endpoint]
+      );
+    } else {
+      // Create new subscription
+      await pool.query("INSERT INTO subs (data, deactivated) VALUES ($1, FALSE)", [JSON.stringify(sub)]);
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Subscribe error:", error);
+    res.status(500).json({ ok: false, error: "Database error" });
+  }
 });
 
-// 1) check if a subscription exists (by endpoint)
+// 1) check if a subscription exists (by endpoint) - exclude deactivated
 app.get("/subscribe/exists", async (req, res) => {
   const endpoint = req.query.endpoint;
   if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
-  const { rows } = await pool.query("SELECT 1 FROM subs WHERE data->>'endpoint' = $1 LIMIT 1", [endpoint]);
+  const { rows } = await pool.query("SELECT 1 FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL) LIMIT 1", [endpoint]);
   res.json({ ok: true, exists: rows.length > 0 });
 });
 
-// 2) remove subscription (by endpoint)
+// 2) deactivate subscription (by endpoint) - soft delete
 app.delete("/subscribe", async (req, res) => {
   const endpoint = req.body?.endpoint || req.query.endpoint;
   if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
-  const r = await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
-  res.json({ ok: true, deleted: r.rowCount });
+  const r = await pool.query("UPDATE subs SET deactivated = TRUE WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)", [endpoint]);
+  res.json({ ok: true, deactivated: r.rowCount });
 });
 
 app.post("/admin/broadcast", guard, async (_req, res) => {
-  const { rows } = await pool.query("SELECT id, data, created_at FROM subs");
+  const { rows } = await pool.query("SELECT id, data, created_at FROM subs WHERE deactivated = FALSE OR deactivated IS NULL");
 
   let sent = 0;
   let failed = 0;
@@ -200,10 +249,10 @@ app.post("/admin/send-now", guard, async (req, res) => {
   if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
 
   try {
-    // Find the subscription by endpoint
-    const { rows } = await pool.query("SELECT id, data, created_at FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+    // Find the subscription by endpoint - exclude deactivated
+    const { rows } = await pool.query("SELECT id, data, created_at FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)", [endpoint]);
     if (rows.length === 0) {
-      return res.status(404).json({ ok: false, error: "Subscription not found" });
+      return res.status(404).json({ ok: false, error: "Subscription not found or deactivated" });
     }
 
     const row = rows[0];
