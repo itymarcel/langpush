@@ -4,8 +4,51 @@
 
 class LinguaPush {
   constructor() {
-    this.btn = document.getElementById("sub");
-    this.sendNowBtn = document.getElementById("sendNow");
+    // Constants
+    this.CONSTANTS = {
+      ENDPOINTS: {
+        VAPID_KEY: '/vapidPublicKey',
+        ADMIN_KEY: '/admin-key',
+        SUBSCRIBE: '/subscribe',
+        SUBSCRIBE_EXISTS: '/subscribe/exists',
+        ADMIN_SUBS: '/admin/subs',
+        ADMIN_SEND_NOW: '/admin/send-now',
+        LAST_NOTIFICATION: '/last-notification',
+        LIVE_RELOAD: '/live-reload'
+      },
+      SELECTORS: {
+        SUB_BUTTON: 'sub',
+        SEND_NOW_BUTTON: 'sendNow',
+        LANGUAGE_SELECT: 'language-select',
+        LANGUAGE_CONTAINER: 'language-container',
+        SUBSCRIBE_INFO: 'subscribe-info',
+        CHICKEN_BTN: 'chickenBtn',
+        LAST_NOTIFICATION: '.last-notification',
+        LAST_NOTIFICATION_ORIGINAL: '.last-notification .original',
+        LAST_NOTIFICATION_ENGLISH: '.last-notification .english'
+      },
+      LANGUAGES: {
+        ITALIAN: 'italian',
+        SPANISH: 'spanish',
+        FRENCH: 'french',
+        JAPANESE: 'japanese'
+      },
+      COOLDOWN_DURATION: 60
+    };
+
+    // Cache DOM elements
+    this.elements = {
+      subButton: document.getElementById(this.CONSTANTS.SELECTORS.SUB_BUTTON),
+      sendNowButton: document.getElementById(this.CONSTANTS.SELECTORS.SEND_NOW_BUTTON),
+      languageSelect: document.getElementById(this.CONSTANTS.SELECTORS.LANGUAGE_SELECT),
+      subscribeInfo: document.getElementById(this.CONSTANTS.SELECTORS.SUBSCRIBE_INFO),
+      chickenBtn: document.getElementById(this.CONSTANTS.SELECTORS.CHICKEN_BTN),
+      lastNotification: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION),
+      lastNotificationOriginal: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ORIGINAL),
+      lastNotificationEnglish: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ENGLISH)
+    };
+
+    // State
     this.reg = null; // service worker registration cache
 
     this.init();
@@ -29,13 +72,13 @@ class LinguaPush {
    */
   setupEventListeners() {
     // Main subscription button
-    this.btn.addEventListener("click", () => this.handleSubscriptionToggle());
+    this.elements.subButton.addEventListener("click", () => this.handleSubscriptionToggle());
 
     // Send Now button
-    this.sendNowBtn.addEventListener("click", () => this.handleSendNow());
+    this.elements.sendNowButton.addEventListener("click", () => this.handleSendNow());
 
     // Language selection change
-    document.getElementById("language-select").addEventListener("change", (e) => {
+    this.elements.languageSelect.addEventListener("change", (e) => {
       this.updateLanguageDisplay(e.target.value);
     });
 
@@ -49,44 +92,66 @@ class LinguaPush {
    * Update button state and UI based on subscription status
    */
   setButtonState(state) {
-    const subscribeInfo = document.getElementById("subscribe-info");
     const spinner = document.querySelector(".spinner");
+
+    // Get all button state elements
+    const subState = this.elements.subButton.querySelector('.sub-state');
+    const unsubState = this.elements.subButton.querySelector('.unsub-state');
+    const loadingState = this.elements.subButton.querySelector('.loading-state');
+    const unsupportedState = this.elements.subButton.querySelector('.unsupported-state');
+
+    // Hide all states first
+    [subState, unsubState, loadingState, unsupportedState].forEach(element => {
+      if (element) element.style.display = 'none';
+    });
 
     switch (state) {
       case "sub":
-        this.btn.innerHTML = '<i data-lucide="bell-off" class="ios-icon"></i> Unsubscribe';
-        this.btn.disabled = false;
-        this.btn.classList.add("outline");
-        this.sendNowBtn.style.display = "flex";
+        if (unsubState) unsubState.style.display = 'flex';
+        this.elements.subButton.disabled = false;
+        this.elements.subButton.classList.add("outline");
+        this.elements.sendNowButton.style.display = "flex";
         if (spinner) {
           spinner.style.visibility = "visible";
           spinner.style.opacity = "1";
         }
-        this.updateSubscribedMessage(document.getElementById("language-select").value);
+        this.updateSubscribedMessage(this.elements.languageSelect.value);
         break;
 
       case "unsub":
-        this.btn.innerHTML = '<i data-lucide="bell" class="ios-icon"></i> Subscribe';
-        this.btn.disabled = false;
-        this.btn.classList.remove("outline");
-        this.sendNowBtn.style.display = "none";
+        if (subState) subState.style.display = 'flex';
+        this.elements.subButton.disabled = false;
+        this.elements.subButton.classList.remove("outline");
+        this.elements.sendNowButton.style.display = "none";
         if (spinner) {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
         }
-        this.updateUnsubscribedMessage(document.getElementById("language-select").value);
+        this.updateUnsubscribedMessage(this.elements.languageSelect.value);
         break;
 
-      default:
-        this.btn.innerHTML = '<i data-lucide="loader" class="ios-icon rotating blue-text"></i>';
-        this.btn.disabled = true;
-        this.btn.classList.remove("outline");
-        this.sendNowBtn.style.display = "none";
+      case "unsupported":
+        if (unsupportedState) unsupportedState.style.display = 'flex';
+        this.elements.subButton.disabled = true;
+        this.elements.subButton.classList.remove("outline");
+        this.elements.sendNowButton.style.display = "none";
         if (spinner) {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
         }
-        subscribeInfo.innerHTML = "";
+        this.elements.subscribeInfo.innerHTML = "";
+        break;
+
+      default: // loading
+        if (loadingState) loadingState.style.display = 'flex';
+        this.elements.subButton.disabled = true;
+        this.elements.subButton.classList.remove("outline");
+        this.elements.sendNowButton.style.display = "none";
+        if (spinner) {
+          spinner.style.visibility = "hidden";
+          spinner.style.opacity = "0";
+        }
+        this.elements.subscribeInfo.innerHTML = "";
         break;
     }
 
@@ -105,16 +170,25 @@ class LinguaPush {
   }
 
   /**
+   * Get language display name
+   */
+  getLanguageDisplayName(languageValue) {
+    const languageMap = {
+      [this.CONSTANTS.LANGUAGES.SPANISH]: "Spanish",
+      [this.CONSTANTS.LANGUAGES.FRENCH]: "French",
+      [this.CONSTANTS.LANGUAGES.JAPANESE]: "Japanese",
+      [this.CONSTANTS.LANGUAGES.ITALIAN]: "Italian"
+    };
+    return languageMap[languageValue] || "Italian";
+  }
+
+  /**
    * Update subscribed message (when user is subscribed)
    */
   updateSubscribedMessage(languageValue) {
-    const subscribeInfo = document.getElementById("subscribe-info");
-    const languageName = languageValue === "spanish" ? "Spanish" :
-                        languageValue === "french" ? "French" :
-                        languageValue === "japanese" ? "Japanese" : "Italian";
-
-    if (subscribeInfo) {
-      subscribeInfo.innerHTML = `You're receiving <b>3</b> hand picked <br/>${languageName} ↔ English phrase pairs a day.`;
+    const languageName = this.getLanguageDisplayName(languageValue);
+    if (this.elements.subscribeInfo) {
+      this.elements.subscribeInfo.innerHTML = `You're receiving <b>3</b> hand picked <br/>${languageName} ↔ English phrase pairs a day.`;
     }
   }
 
@@ -122,13 +196,9 @@ class LinguaPush {
    * Update unsubscribed message (when user is not subscribed)
    */
   updateUnsubscribedMessage(languageValue) {
-    const subscribeInfo = document.getElementById("subscribe-info");
-    const languageName = languageValue === "spanish" ? "Spanish" :
-                        languageValue === "french" ? "French" :
-                        languageValue === "japanese" ? "Japanese" : "Italian";
-
-    if (subscribeInfo) {
-      subscribeInfo.innerHTML = `Once subscribed, you'll receive <br/><b>3 notifications a day</b> with hand picked <br/><span id="language-name">${languageName}</span> ↔ English phrase pairs.`;
+    const languageName = this.getLanguageDisplayName(languageValue);
+    if (this.elements.subscribeInfo) {
+      this.elements.subscribeInfo.innerHTML = `Once subscribed, you'll receive <br/><b>3 notifications a day</b> with hand picked <br/><span id="language-name">${languageName}</span> ↔ English phrase pairs.`;
     }
   }
 
@@ -137,9 +207,7 @@ class LinguaPush {
    */
   async readyServiceWorker() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      this.btn.innerHTML = '<i data-lucide="x-circle" class="ios-icon"></i> Push not supported';
-      this.btn.disabled = true;
-      lucide.createIcons();
+      this.setButtonState("unsupported");
       return null;
     }
 
@@ -155,7 +223,7 @@ class LinguaPush {
    * Get VAPID public key from server
    */
   async getVapidKey() {
-    const response = await fetch("/vapidPublicKey");
+    const response = await fetch(this.CONSTANTS.ENDPOINTS.VAPID_KEY);
     return (await response.text()).trim();
   }
 
@@ -170,6 +238,39 @@ class LinguaPush {
   }
 
   /**
+   * Check if subscription exists on server
+   */
+  async checkSubscriptionOnServer(endpoint) {
+    try {
+      const queryParams = new URLSearchParams({ endpoint });
+      const response = await fetch(`${this.CONSTANTS.ENDPOINTS.SUBSCRIBE_EXISTS}?${queryParams}`);
+      const data = await response.json();
+      return !!data.exists;
+    } catch (error) {
+      console.error("Error checking subscription:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Get subscription status and preferences
+   */
+  async getSubscriptionStatus(subscription) {
+    if (!subscription) {
+      return { existsOnServer: false, savedLanguage: null };
+    }
+
+    const existsOnServer = await this.checkSubscriptionOnServer(subscription.endpoint);
+    let savedLanguage = null;
+
+    if (existsOnServer) {
+      savedLanguage = await this.getSavedLanguage(subscription.endpoint);
+    }
+
+    return { existsOnServer, savedLanguage };
+  }
+
+  /**
    * Sync button state with actual subscription status
    */
   async syncButton() {
@@ -179,31 +280,11 @@ class LinguaPush {
     if (!serviceWorker) return;
 
     const subscription = await serviceWorker.pushManager.getSubscription();
-    let existsOnServer = false;
-    let savedLanguage = null;
-
-    const languageSelect = document.getElementById("language-select");
-
-    // Check if subscription exists on server
-    if (subscription) {
-      try {
-        const queryParams = new URLSearchParams({ endpoint: subscription.endpoint });
-        const response = await fetch(`/subscribe/exists?${queryParams}`);
-        const data = await response.json();
-        existsOnServer = !!data.exists;
-
-        // Get saved language preference if subscribed
-        if (existsOnServer) {
-          savedLanguage = await this.getSavedLanguage(subscription.endpoint);
-        }
-      } catch (error) {
-        console.error("Error checking subscription:", error);
-      }
-    }
+    const { existsOnServer, savedLanguage } = await this.getSubscriptionStatus(subscription);
 
     const isSubscribed = subscription && existsOnServer;
     this.setButtonState(isSubscribed ? "sub" : "unsub");
-    this.updateUI(isSubscribed, savedLanguage, languageSelect);
+    this.updateUI(isSubscribed, savedLanguage, this.elements.languageSelect);
 
     return { subscription, existsOnServer, savedLanguage };
   }
@@ -213,10 +294,10 @@ class LinguaPush {
    */
   async getSavedLanguage(endpoint) {
     try {
-      const adminKeyResponse = await fetch('/admin-key');
+      const adminKeyResponse = await fetch(this.CONSTANTS.ENDPOINTS.ADMIN_KEY);
       const adminKey = await adminKeyResponse.text();
 
-      const response = await fetch('/admin/subs', {
+      const response = await fetch(this.CONSTANTS.ENDPOINTS.ADMIN_SUBS, {
         headers: { 'X-Admin-Key': adminKey }
       });
 
@@ -285,7 +366,7 @@ class LinguaPush {
 
     try {
       await subscription.unsubscribe();
-      await fetch("/subscribe", {
+      await fetch(this.CONSTANTS.ENDPOINTS.SUBSCRIBE, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint })
@@ -335,7 +416,7 @@ class LinguaPush {
         language: selectedLanguage
       };
 
-      await fetch("/subscribe", {
+      await fetch(this.CONSTANTS.ENDPOINTS.SUBSCRIBE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(subscriptionData)
@@ -363,11 +444,11 @@ class LinguaPush {
    * Handle Send One Now button click
    */
   setSendButtonState(state) {
-    const sendState = this.sendNowBtn.querySelector('.send-state');
-    const sendingState = this.sendNowBtn.querySelector('.sending-state');
-    const sentState = this.sendNowBtn.querySelector('.sent-state');
-    const failedState = this.sendNowBtn.querySelector('.failed-state');
-    const cooldownState = this.sendNowBtn.querySelector('.cooldown-state');
+    const sendState = this.elements.sendNowButton.querySelector('.send-state');
+    const sendingState = this.elements.sendNowButton.querySelector('.sending-state');
+    const sentState = this.elements.sendNowButton.querySelector('.sent-state');
+    const failedState = this.elements.sendNowButton.querySelector('.failed-state');
+    const cooldownState = this.elements.sendNowButton.querySelector('.cooldown-state');
 
     // Hide all states
     sendState.style.display = 'none';
@@ -380,25 +461,25 @@ class LinguaPush {
     switch (state) {
       case 'send':
         sendState.style.display = 'flex';
-        this.sendNowBtn.disabled = false;
+        this.elements.sendNowButton.disabled = false;
         break;
       case 'sending':
         sendingState.style.display = 'flex';
-        this.sendNowBtn.disabled = true;
+        this.elements.sendNowButton.disabled = true;
         break;
       case 'sent':
         sentState.style.display = 'flex';
-        this.sendNowBtn.disabled = true;
+        this.elements.sendNowButton.disabled = true;
         break;
       case 'failed':
         failedState.style.display = 'flex';
-        this.sendNowBtn.disabled = true;
+        this.elements.sendNowButton.disabled = true;
         break;
       case 'cooldown':
         if (cooldownState) {
           cooldownState.style.display = 'flex';
         }
-        this.sendNowBtn.disabled = true;
+        this.elements.sendNowButton.disabled = true;
         break;
     }
   }
@@ -413,10 +494,10 @@ class LinguaPush {
       const subscription = await serviceWorker.pushManager.getSubscription();
       if (!subscription) return;
 
-      const adminKeyResponse = await fetch('/admin-key');
+      const adminKeyResponse = await fetch(this.CONSTANTS.ENDPOINTS.ADMIN_KEY);
       const adminKey = await adminKeyResponse.text();
 
-      const response = await fetch("/admin/send-now", {
+      const response = await fetch(this.CONSTANTS.ENDPOINTS.ADMIN_SEND_NOW, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -430,9 +511,9 @@ class LinguaPush {
         // Reload last notification after sending
         this.loadLastNotification();
 
-        // Start 60-second cooldown with countdown
-        this.saveCooldownToCache(60);
-        this.startCooldown(60);
+        // Start cooldown with countdown
+        this.saveCooldownToCache(this.CONSTANTS.COOLDOWN_DURATION);
+        this.startCooldown(this.CONSTANTS.COOLDOWN_DURATION);
       } else {
         throw new Error('Failed to send notification');
       }
@@ -480,7 +561,7 @@ class LinguaPush {
   }
 
   updateCooldownText(seconds) {
-    const sendState = this.sendNowBtn.querySelector('.cooldown-state .text');
+    const sendState = this.elements.sendNowButton.querySelector('.cooldown-state .text');
     if (sendState) {
       sendState.textContent = ` Wait ${seconds}s`;
     }
@@ -490,14 +571,13 @@ class LinguaPush {
    * Initialize chicken popover
    */
   initializeChickenPopover() {
-    const chickenBtn = document.getElementById('chickenBtn');
-    if (chickenBtn) {
+    if (this.elements.chickenBtn) {
       const popoverContent = `
         <h3>Daily Language Pairs</h3>
         <p>Subscribing will send you a push notification 3 x times a day with a language pair of your choice.</p>
       `;
 
-      new Popover(chickenBtn, popoverContent, {
+      new Popover(this.elements.chickenBtn, popoverContent, {
         position: 'bottom',
         offset: 15,
         className: 'chicken-popover'
@@ -516,7 +596,7 @@ class LinguaPush {
       const subscription = await serviceWorker.pushManager.getSubscription();
       if (!subscription) return;
 
-      const response = await fetch(`/last-notification?endpoint=${encodeURIComponent(subscription.endpoint)}`);
+      const response = await fetch(`${this.CONSTANTS.ENDPOINTS.LAST_NOTIFICATION}?endpoint=${encodeURIComponent(subscription.endpoint)}`);
       const data = await response.json();
 
       if (data.ok && data.hasNotification) {
@@ -534,14 +614,10 @@ class LinguaPush {
    * Display last notification in the UI
    */
   displayLastNotification(original, english, language, sentAt) {
-    const lastNotificationDiv = document.querySelector('.last-notification');
-    const originalDiv = lastNotificationDiv.querySelector('.original');
-    const englishDiv = lastNotificationDiv.querySelector('.english');
-
-    if (originalDiv && englishDiv) {
-      originalDiv.textContent = original;
-      englishDiv.textContent = english;
-      lastNotificationDiv.style.display = 'flex';
+    if (this.elements.lastNotificationOriginal && this.elements.lastNotificationEnglish) {
+      this.elements.lastNotificationOriginal.textContent = original;
+      this.elements.lastNotificationEnglish.textContent = english;
+      this.elements.lastNotification.style.display = 'flex';
     }
   }
 
@@ -549,9 +625,8 @@ class LinguaPush {
    * Hide last notification
    */
   hideLastNotification() {
-    const lastNotificationDiv = document.querySelector('.last-notification');
-    if (lastNotificationDiv) {
-      lastNotificationDiv.style.display = 'none';
+    if (this.elements.lastNotification) {
+      this.elements.lastNotification.style.display = 'none';
     }
   }
 
@@ -560,7 +635,7 @@ class LinguaPush {
    */
   setupLiveReload() {
     if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      const eventSource = new EventSource('/live-reload');
+      const eventSource = new EventSource(this.CONSTANTS.ENDPOINTS.LIVE_RELOAD);
       eventSource.onmessage = (event) => {
         if (event.data === 'reload') {
           location.reload();

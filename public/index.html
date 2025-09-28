@@ -83,7 +83,18 @@
     </button>
 
     <button id="sub">
-      <i data-lucide="bell" class="ios-icon"></i> Subscribe
+      <span class="sub-state">
+        <i data-lucide="bell" class="ios-icon"></i> Subscribe
+      </span>
+      <span class="unsub-state" style="display: none;">
+        <i data-lucide="bell-off" class="ios-icon"></i> Unsubscribe
+      </span>
+      <span class="loading-state" style="display: none;">
+        <i data-lucide="loader" class="ios-icon rotating blue-text"></i>
+      </span>
+      <span class="unsupported-state" style="display: none;">
+        <i data-lucide="x-circle" class="ios-icon"></i> Push not supported
+      </span>
     </button>
 
     <div id="subscribe-info">

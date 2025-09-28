@@ -212,13 +212,33 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
     let payload;
 
     if (language === 'spanish') {
-      payload = `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇪🇸 ${phrase.es}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     } else if (language === 'french') {
-      payload = `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇫🇷 ${phrase.fr}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     } else if (language === 'japanese') {
-      payload = `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇯🇵 ${phrase.ja}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     } else {
-      payload = `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇮🇹 ${phrase.it}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     }
 
     try {
@@ -264,13 +284,33 @@ app.post("/admin/send-now", guard, async (req, res) => {
     let payload;
 
     if (language === 'spanish') {
-      payload = `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇪🇸 ${phrase.es}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     } else if (language === 'french') {
-      payload = `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇫🇷 ${phrase.fr}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     } else if (language === 'japanese') {
-      payload = `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇯🇵 ${phrase.ja}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     } else {
-      payload = `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`;
+      payload = JSON.stringify({
+        title: `🇮🇹 ${phrase.it}`,
+        body: `🇬🇧 ${phrase.en}`,
+        icon: '/icon-192.png',
+        badge: '/icon-192.png'
+      });
     }
 
     // Create clean subscription object without our custom language field

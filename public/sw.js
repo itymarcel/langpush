@@ -1,8 +1,24 @@
 self.addEventListener("push", e => {
-  const data = e.data?.text() || "New phrase!";
+  let notificationData;
+
+  try {
+    // Try to parse as JSON first
+    notificationData = JSON.parse(e.data?.text() || '{}');
+  } catch (error) {
+    // Fallback for plain text notifications
+    notificationData = {
+      title: "New Phrase!",
+      body: e.data?.text() || "A new language phrase is ready for you!",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png"
+    };
+  }
+
   e.waitUntil(
-    self.registration.showNotification("A New Phrase for You)", {
-      body: data, icon: "/icon.png"
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge
     })
   );
 });

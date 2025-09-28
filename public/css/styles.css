@@ -101,7 +101,7 @@ h1 {
   justify-content: center;
   margin-bottom: 10px;
 }
-#sendNow > span {
+#sendNow > span, #sub > span {
   display: flex;
   align-items: center;
   gap: 5px;
