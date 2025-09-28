@@ -215,6 +215,8 @@ h1 {
 
 #language-select:disabled {
   border-color: rgba(0, 0, 255, 0.2);
+  color: black;
+  cursor:not-allowed;
 }
 
 #language-select:focus {
