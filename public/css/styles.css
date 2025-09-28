@@ -41,7 +41,7 @@ body {
 .headline-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
   margin-bottom: 2rem;
 }
@@ -143,8 +143,6 @@ h1 {
 }
 
 #language-container label {
-  display: block;
-  margin-bottom: 5px;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.7);
   font-size: 14px;
@@ -241,7 +239,9 @@ h1 {
 .blue-text {
   color: rgba(0, 0, 255, 1)
 }
-
+.waving-hand {
+  position:relative;
+}
 /* Animations */
 .rotating {
   animation: rotate 1s linear infinite;

@@ -19,6 +19,7 @@ class LinguaPush {
     this.syncButton();
     this.initializeIcons();
     this.setupLiveReload();
+    this.initializeChickenPopover();
   }
 
   /**
@@ -47,6 +48,7 @@ class LinguaPush {
    */
   setButtonState(state) {
     const subscribeInfo = document.getElementById("subscribe-info");
+    const spinner = document.querySelector(".spinner");
 
     switch (state) {
       case "sub":
@@ -54,6 +56,10 @@ class LinguaPush {
         this.btn.disabled = false;
         this.btn.classList.add("outline");
         this.sendNowBtn.style.display = "flex";
+        if (spinner) {
+          spinner.style.visibility = "visible";
+          spinner.style.opacity = "1";
+        }
         this.updateSubscribedMessage(document.getElementById("language-select").value);
         break;
 
@@ -62,6 +68,10 @@ class LinguaPush {
         this.btn.disabled = false;
         this.btn.classList.remove("outline");
         this.sendNowBtn.style.display = "none";
+        if (spinner) {
+          spinner.style.visibility = "hidden";
+          spinner.style.opacity = "0";
+        }
         this.updateUnsubscribedMessage(document.getElementById("language-select").value);
         break;
 
@@ -70,6 +80,10 @@ class LinguaPush {
         this.btn.disabled = true;
         this.btn.classList.remove("outline");
         this.sendNowBtn.style.display = "none";
+        if (spinner) {
+          spinner.style.visibility = "hidden";
+          spinner.style.opacity = "0";
+        }
         subscribeInfo.innerHTML = "";
         break;
     }
@@ -413,6 +427,25 @@ class LinguaPush {
       setTimeout(() => {
         this.setSendButtonState('send');
       }, 2000);
+    }
+  }
+
+  /**
+   * Initialize chicken popover
+   */
+  initializeChickenPopover() {
+    const chickenBtn = document.getElementById('chickenBtn');
+    if (chickenBtn) {
+      const popoverContent = `
+        <h3>Daily Language Pairs</h3>
+        <p>Subscribing will send you a push notification 3 x times a day with a language pair of your choice.</p>
+      `;
+
+      new Popover(chickenBtn, popoverContent, {
+        position: 'bottom',
+        offset: 15,
+        className: 'chicken-popover'
+      });
     }
   }
 

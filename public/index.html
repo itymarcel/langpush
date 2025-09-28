@@ -18,6 +18,8 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <link rel="stylesheet" href="/css/styles.css" />
   <link rel="stylesheet" href="/css/waves.css" />
+  <link rel="stylesheet" href="/css/popover.css" />
+  <link rel="stylesheet" href="/css/ping.css" />
 </head>
 <body>
   <button id="installBtn">
@@ -25,11 +27,19 @@
   </button>
 
   <div id="main-container">
-    <div class="waving-hand">
-      <img src="Chicken.gif" width="50px"/>
-    </div>
+    <!-- <div class="waving-hand">
+      <button class="chicken-button" id="chickenBtn">
+        <img src="Chicken.gif" width="50px"/>
+      </button>
+      <div class="spinner" style="visibility: hidden; opacity: 0;">
+          <div class="double-bounce1"></div>
+          <div class="double-bounce2"></div>
+      </div>
+    </div> -->
     <div class="headline-container">
-      <h1><i data-lucide='languages' class='ios-icon'></i> LANGPUSH</h1>
+      <h1 id="chickenBtn">
+        <i data-lucide='languages' class='ios-icon'></i> LANGPUSH
+      </h1>
       <div id="github">
         <a href='https://github.com/itymarcel/langpush' target='_blank'>
           see on github
@@ -46,7 +56,11 @@
     </div>
 
     <div id="language-container">
-      <label for="language-select">Choose language</label>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom:8px;">
+        <label for="language-select">
+          Choose language
+        </label>
+      </div>
       <select id="language-select">
         <option value="italian">🇮🇹 Italian</option>
         <option value="spanish">🇪🇸 Spanish</option>
@@ -78,6 +92,7 @@
     </div>
   </div>
 
+  <script src="/js/popover.js"></script>
   <script src="/js/app.js"></script>
   <script src="/install.js" defer></script>
 </body>
