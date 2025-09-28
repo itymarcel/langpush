@@ -1,6 +1,6 @@
 {
-  "name": "langpush",
-  "short_name": "lp",
+  "name": "langpush daily language notifications",
+  "short_name": "langpush",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9f9f9",

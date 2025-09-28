@@ -213,29 +213,29 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
 
     if (language === 'spanish') {
       payload = JSON.stringify({
-        title: `🇪🇸 ${phrase.es}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New Spanish Phrase',
+        body: `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });
     } else if (language === 'french') {
       payload = JSON.stringify({
-        title: `🇫🇷 ${phrase.fr}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New French Phrase',
+        body: `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });
     } else if (language === 'japanese') {
       payload = JSON.stringify({
-        title: `🇯🇵 ${phrase.ja}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New Japanese Phrase',
+        body: `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });
     } else {
       payload = JSON.stringify({
-        title: `🇮🇹 ${phrase.it}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New Italian Phrase',
+        body: `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });
@@ -285,29 +285,29 @@ app.post("/admin/send-now", guard, async (req, res) => {
 
     if (language === 'spanish') {
       payload = JSON.stringify({
-        title: `🇪🇸 ${phrase.es}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New Spanish Phrase',
+        body: `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });
     } else if (language === 'french') {
       payload = JSON.stringify({
-        title: `🇫🇷 ${phrase.fr}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New French Phrase',
+        body: `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });
     } else if (language === 'japanese') {
       payload = JSON.stringify({
-        title: `🇯🇵 ${phrase.ja}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New Japanese Phrase',
+        body: `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });
     } else {
       payload = JSON.stringify({
-        title: `🇮🇹 ${phrase.it}`,
-        body: `🇬🇧 ${phrase.en}`,
+        title: 'New Italian Phrase',
+        body: `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`,
         icon: '/icon-192.png',
         badge: '/icon-192.png'
       });

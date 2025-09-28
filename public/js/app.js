@@ -86,6 +86,14 @@ class LinguaPush {
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
     });
+
+    // Refresh data when app becomes visible again (from background/swipe away)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // App became visible again - refresh latest notification
+        this.loadLastNotification();
+      }
+    });
   }
 
   /**
