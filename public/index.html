@@ -50,16 +50,27 @@
           Choose language
         </label>
       </div>
-      <select id="language-select">
-        <option value="italian">🇮🇹 Italian</option>
-        <option value="spanish">🇪🇸 Spanish</option>
-        <option value="french">🇫🇷 French</option>
-        <option value="japanese">🇯🇵 Japanese</option>
-      </select>
+      <div class="selection-container">
+        <select id="language-select" class="custom-select">
+          <option value="italian">🇮🇹 Italian</option>
+          <option value="spanish">🇪🇸 Spanish</option>
+          <option value="french">🇫🇷 French</option>
+          <option value="japanese">🇯🇵 Japanese</option>
+        </select>
+        <div class="difficulty-select-container">
+          <select id="difficulty-select" class="custom-select">
+            <option value="easy">Easy</option>
+            <option value="medium">Med</option>
+          </select>
+          <div class="difficulty-loading" style="display: none;">
+            <i data-lucide="loader" class="ios-icon rotating"></i>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="last-notification" style="display: none;">
-      <label class=""><i data-lucide="history" class='ios-icon'></i> Last</label>
+      <label class=""><i data-lucide="history" class='ios-icon'></i></label>
       <div class="original"></div>
       <div class="english"></div>
     </div>

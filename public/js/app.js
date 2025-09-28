@@ -11,6 +11,7 @@ class LinguaPush {
         ADMIN_KEY: '/admin-key',
         SUBSCRIBE: '/subscribe',
         SUBSCRIBE_EXISTS: '/subscribe/exists',
+        SUBSCRIBE_DIFFICULTY: '/subscribe/difficulty',
         ADMIN_SUBS: '/admin/subs',
         ADMIN_SEND_NOW: '/admin/send-now',
         LAST_NOTIFICATION: '/last-notification',
@@ -20,7 +21,9 @@ class LinguaPush {
         SUB_BUTTON: 'sub',
         SEND_NOW_BUTTON: 'sendNow',
         LANGUAGE_SELECT: 'language-select',
+        DIFFICULTY_SELECT: 'difficulty-select',
         LANGUAGE_CONTAINER: 'language-container',
+        DIFFICULTY_CONTAINER: 'difficulty-container',
         SUBSCRIBE_INFO: 'subscribe-info',
         CHICKEN_BTN: 'chickenBtn',
         LAST_NOTIFICATION: '.last-notification',
@@ -41,6 +44,7 @@ class LinguaPush {
       subButton: document.getElementById(this.CONSTANTS.SELECTORS.SUB_BUTTON),
       sendNowButton: document.getElementById(this.CONSTANTS.SELECTORS.SEND_NOW_BUTTON),
       languageSelect: document.getElementById(this.CONSTANTS.SELECTORS.LANGUAGE_SELECT),
+      difficultySelect: document.getElementById(this.CONSTANTS.SELECTORS.DIFFICULTY_SELECT),
       subscribeInfo: document.getElementById(this.CONSTANTS.SELECTORS.SUBSCRIBE_INFO),
       chickenBtn: document.getElementById(this.CONSTANTS.SELECTORS.CHICKEN_BTN),
       lastNotification: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION),
@@ -80,6 +84,11 @@ class LinguaPush {
     // Language selection change
     this.elements.languageSelect.addEventListener("change", (e) => {
       this.updateLanguageDisplay(e.target.value);
+    });
+
+    // Difficulty selection change
+    this.elements.difficultySelect.addEventListener("change", (e) => {
+      this.updateDifficultyDisplay(e.target.value);
     });
 
     // Icons initialization
@@ -123,7 +132,7 @@ class LinguaPush {
           spinner.style.visibility = "visible";
           spinner.style.opacity = "1";
         }
-        this.updateSubscribedMessage(this.elements.languageSelect.value);
+        this.updateSubscribedMessage(this.elements.languageSelect.value, this.elements.difficultySelect.value);
         break;
 
       case "unsub":
@@ -135,7 +144,7 @@ class LinguaPush {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
         }
-        this.updateUnsubscribedMessage(this.elements.languageSelect.value);
+        this.updateUnsubscribedMessage(this.elements.languageSelect.value, this.elements.difficultySelect.value);
         break;
 
       case "unsupported":
@@ -193,20 +202,101 @@ class LinguaPush {
   /**
    * Update subscribed message (when user is subscribed)
    */
-  updateSubscribedMessage(languageValue) {
+  updateSubscribedMessage(languageValue, difficultyValue = 'easy') {
     const languageName = this.getLanguageDisplayName(languageValue);
+    const difficultyName = difficultyValue === 'medium' ? 'medium' : 'easy';
     if (this.elements.subscribeInfo) {
-      this.elements.subscribeInfo.innerHTML = `You're receiving <b>3</b> hand picked <br/>${languageName} ↔ English phrase pairs a day.`;
+      this.elements.subscribeInfo.innerHTML = `You're receiving <b>three (3)</b> hand picked <br/><b>${languageName} ↔ English</b> phrase pairs <br/>a day (${difficultyName} level).`;
     }
   }
 
   /**
    * Update unsubscribed message (when user is not subscribed)
    */
-  updateUnsubscribedMessage(languageValue) {
+  updateUnsubscribedMessage(languageValue, difficultyValue = 'easy') {
     const languageName = this.getLanguageDisplayName(languageValue);
+    const difficultyName = difficultyValue === 'medium' ? 'medium' : 'easy';
     if (this.elements.subscribeInfo) {
-      this.elements.subscribeInfo.innerHTML = `Once subscribed, you'll receive <br/><b>3 notifications a day</b> with hand picked <br/><span id="language-name">${languageName}</span> ↔ English phrase pairs.`;
+      this.elements.subscribeInfo.innerHTML = `Once subscribed, you'll receive <br/><b>three (3)</b> notifications a day <br/>with hand picked <b><span id="language-name">${languageName}</span> ↔ English</b><br/>phrase pairs (${difficultyName} level).`;
+    }
+  }
+
+  /**
+   * Update language display when language changes
+   */
+  updateLanguageDisplay(languageValue) {
+    const difficultyValue = this.elements.difficultySelect.value;
+    // Update the info message with current selections
+    if (this.elements.subButton.classList.contains("outline")) {
+      // User is subscribed - don't update message dynamically
+      return;
+    }
+    this.updateUnsubscribedMessage(languageValue, difficultyValue);
+  }
+
+  /**
+   * Update difficulty display when difficulty changes
+   */
+  async updateDifficultyDisplay(difficultyValue) {
+    const languageValue = this.elements.languageSelect.value;
+
+    // Check if user is subscribed
+    if (this.elements.subButton.classList.contains("outline")) {
+      // User is subscribed - update difficulty on server
+      await this.updateSubscriptionDifficulty(difficultyValue);
+      // Update the subscribed message with new difficulty
+      this.updateSubscribedMessage(languageValue, difficultyValue);
+    } else {
+      // User is not subscribed - just update the message
+      this.updateUnsubscribedMessage(languageValue, difficultyValue);
+    }
+  }
+
+  /**
+   * Show difficulty loading state
+   */
+  showDifficultyLoading(show = true) {
+    const loadingElement = document.querySelector('.difficulty-loading');
+    if (loadingElement) {
+      loadingElement.style.display = show ? 'block' : 'none';
+    }
+
+    // Disable the difficulty select while loading
+    this.elements.difficultySelect.disabled = show;
+  }
+
+  /**
+   * Update subscription difficulty on server
+   */
+  async updateSubscriptionDifficulty(difficulty) {
+    this.showDifficultyLoading(true);
+
+    try {
+      const serviceWorker = await this.readyServiceWorker();
+      if (!serviceWorker) return;
+
+      const subscription = await serviceWorker.pushManager.getSubscription();
+      if (!subscription) return;
+
+      const response = await fetch(this.CONSTANTS.ENDPOINTS.SUBSCRIBE_DIFFICULTY, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          difficulty: difficulty
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update difficulty: ${response.status}`);
+      }
+
+      console.log(`Difficulty updated to: ${difficulty}`);
+    } catch (error) {
+      console.error("Failed to update difficulty:", error);
+      alert("Failed to update difficulty setting. Please try again.");
+    } finally {
+      this.showDifficultyLoading(false);
     }
   }
 
@@ -265,17 +355,20 @@ class LinguaPush {
    */
   async getSubscriptionStatus(subscription) {
     if (!subscription) {
-      return { existsOnServer: false, savedLanguage: null };
+      return { existsOnServer: false, savedLanguage: null, savedDifficulty: null };
     }
 
     const existsOnServer = await this.checkSubscriptionOnServer(subscription.endpoint);
     let savedLanguage = null;
+    let savedDifficulty = null;
 
     if (existsOnServer) {
-      savedLanguage = await this.getSavedLanguage(subscription.endpoint);
+      const savedPrefs = await this.getSavedPreferences(subscription.endpoint);
+      savedLanguage = savedPrefs.language;
+      savedDifficulty = savedPrefs.difficulty;
     }
 
-    return { existsOnServer, savedLanguage };
+    return { existsOnServer, savedLanguage, savedDifficulty };
   }
 
   /**
@@ -288,19 +381,19 @@ class LinguaPush {
     if (!serviceWorker) return;
 
     const subscription = await serviceWorker.pushManager.getSubscription();
-    const { existsOnServer, savedLanguage } = await this.getSubscriptionStatus(subscription);
+    const { existsOnServer, savedLanguage, savedDifficulty } = await this.getSubscriptionStatus(subscription);
 
     const isSubscribed = subscription && existsOnServer;
     this.setButtonState(isSubscribed ? "sub" : "unsub");
-    this.updateUI(isSubscribed, savedLanguage, this.elements.languageSelect);
+    this.updateUI(isSubscribed, savedLanguage, savedDifficulty, this.elements.languageSelect, this.elements.difficultySelect);
 
-    return { subscription, existsOnServer, savedLanguage };
+    return { subscription, existsOnServer, savedLanguage, savedDifficulty };
   }
 
   /**
-   * Get saved language preference from server
+   * Get saved preferences (language and difficulty) from server
    */
-  async getSavedLanguage(endpoint) {
+  async getSavedPreferences(endpoint) {
     try {
       const adminKeyResponse = await fetch(this.CONSTANTS.ENDPOINTS.ADMIN_KEY);
       const adminKey = await adminKeyResponse.text();
@@ -318,33 +411,48 @@ class LinguaPush {
 
         if (userSub) {
           const data = typeof userSub.data === 'string' ? JSON.parse(userSub.data) : userSub.data;
-          return data.language || 'italian';
+          return {
+            language: data.language || 'italian',
+            difficulty: userSub.difficulty || 'easy'
+          };
         }
       }
     } catch (error) {
-      console.error("Error fetching saved language:", error);
+      console.error("Error fetching saved preferences:", error);
     }
 
-    return null;
+    return { language: null, difficulty: null };
   }
 
   /**
    * Update UI based on subscription status
    */
-  updateUI(isSubscribed, savedLanguage, languageSelect) {
+  updateUI(isSubscribed, savedLanguage, savedDifficulty, languageSelect, difficultySelect) {
     const languageLabel = document.querySelector('#language-container label');
+    const difficultyLabel = document.querySelector('#difficulty-container label');
 
     // Update language selection
     if (savedLanguage) {
       languageSelect.value = savedLanguage;
     }
 
-    // Enable/disable language selector
+    // Update difficulty selection
+    if (savedDifficulty) {
+      difficultySelect.value = savedDifficulty;
+    }
+
+    // Enable/disable selectors - only disable language when subscribed, allow difficulty changes
     languageSelect.disabled = isSubscribed;
+    // Only enable difficulty if not currently loading
+    const isLoadingDifficulty = document.querySelector('.difficulty-loading')?.style.display === 'block';
+    difficultySelect.disabled = isLoadingDifficulty;
 
     // Update label text
     if (languageLabel) {
       languageLabel.textContent = isSubscribed ? "You are subscribed to" : "Choose language";
+    }
+    if (difficultyLabel) {
+      difficultyLabel.textContent = isSubscribed ? "Difficulty level" : "Choose difficulty";
     }
   }
 
@@ -414,14 +522,17 @@ class LinguaPush {
         applicationServerKey: this.base64ToUint8Array(vapidKey)
       });
 
-      // Get selected language
+      // Get selected language and difficulty
       const languageSelect = document.getElementById("language-select");
+      const difficultySelect = document.getElementById("difficulty-select");
       const selectedLanguage = languageSelect.value;
+      const selectedDifficulty = difficultySelect.value;
 
-      // Send subscription to server with language preference
+      // Send subscription to server with language and difficulty preferences
       const subscriptionData = {
         ...newSubscription.toJSON(),
-        language: selectedLanguage
+        language: selectedLanguage,
+        difficulty: selectedDifficulty
       };
 
       await fetch(this.CONSTANTS.ENDPOINTS.SUBSCRIBE, {

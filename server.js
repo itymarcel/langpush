@@ -64,6 +64,10 @@ try {
         ALTER TABLE subs ADD COLUMN deactivated BOOLEAN DEFAULT FALSE;
         RAISE NOTICE 'Added column: deactivated';
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='difficulty') THEN
+        ALTER TABLE subs ADD COLUMN difficulty VARCHAR(20) DEFAULT 'easy';
+        RAISE NOTICE 'Added column: difficulty';
+      END IF;
     END $$;
   `);
   console.log('✅ Database migration completed successfully');
@@ -127,7 +131,7 @@ function guard(req, res, next) {
 app.get("/admin/subs", guard, async (req, res) => {
   const showDeactivated = req.query.show_deactivated === 'true';
 
-  let query = "SELECT id, data, created_at, deactivated FROM subs";
+  let query = "SELECT id, data, created_at, deactivated, difficulty FROM subs";
   let countQuery = "SELECT COUNT(*)::int AS c FROM subs";
 
   if (!showDeactivated) {
@@ -155,18 +159,21 @@ app.post("/subscribe", async (req, res) => {
   if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
 
   try {
+    // Extract difficulty from the request body, default to 'easy'
+    const difficulty = sub.difficulty || 'easy';
+
     // Check if subscription already exists (active or deactivated)
     const { rows: existing } = await pool.query("SELECT id, deactivated FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
 
     if (existing.length > 0) {
-      // Reactivate existing subscription and update data
+      // Reactivate existing subscription and update data and difficulty
       await pool.query(
-        "UPDATE subs SET data = $1, deactivated = FALSE WHERE data->>'endpoint' = $2",
-        [JSON.stringify(sub), endpoint]
+        "UPDATE subs SET data = $1, difficulty = $2, deactivated = FALSE WHERE data->>'endpoint' = $3",
+        [JSON.stringify(sub), difficulty, endpoint]
       );
     } else {
       // Create new subscription
-      await pool.query("INSERT INTO subs (data, deactivated) VALUES ($1, FALSE)", [JSON.stringify(sub)]);
+      await pool.query("INSERT INTO subs (data, difficulty, deactivated) VALUES ($1, $2, FALSE)", [JSON.stringify(sub), difficulty]);
     }
 
     res.json({ ok: true });
@@ -192,8 +199,33 @@ app.delete("/subscribe", async (req, res) => {
   res.json({ ok: true, deactivated: r.rowCount });
 });
 
+// 3) update difficulty for existing subscription
+app.patch("/subscribe/difficulty", async (req, res) => {
+  const { endpoint, difficulty } = req.body;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  if (!difficulty || !['easy', 'medium'].includes(difficulty)) {
+    return res.status(400).json({ ok: false, error: "Invalid difficulty. Must be 'easy' or 'medium'" });
+  }
+
+  try {
+    const r = await pool.query(
+      "UPDATE subs SET difficulty = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
+      [difficulty, endpoint]
+    );
+
+    if (r.rowCount === 0) {
+      return res.status(404).json({ ok: false, error: "Active subscription not found" });
+    }
+
+    res.json({ ok: true, updated: r.rowCount });
+  } catch (error) {
+    console.error("Update difficulty error:", error);
+    res.status(500).json({ ok: false, error: "Database error" });
+  }
+});
+
 app.post("/admin/broadcast", guard, async (_req, res) => {
-  const { rows } = await pool.query("SELECT id, data, created_at FROM subs WHERE deactivated = FALSE OR deactivated IS NULL");
+  const { rows } = await pool.query("SELECT id, data, created_at, difficulty FROM subs WHERE deactivated = FALSE OR deactivated IS NULL");
 
   let sent = 0;
   let failed = 0;
@@ -202,13 +234,15 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
   for (const row of rows) {
     const sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
     const language = sub.language || 'italian'; // Default to Italian if no language specified
+    const difficulty = row.difficulty || 'easy'; // Default to easy if no difficulty specified
 
-    // Generate phrase for this language if we haven't already
-    if (!phrases[language]) {
-      phrases[language] = randomPhraseNoRepeat(language);
+    // Generate phrase for this language+difficulty combination if we haven't already
+    const phraseKey = `${language}_${difficulty}`;
+    if (!phrases[phraseKey]) {
+      phrases[phraseKey] = randomPhraseNoRepeat(language, difficulty);
     }
 
-    const phrase = phrases[language];
+    const phrase = phrases[phraseKey];
     let payload;
 
     if (language === 'spanish') {
@@ -270,7 +304,7 @@ app.post("/admin/send-now", guard, async (req, res) => {
 
   try {
     // Find the subscription by endpoint - exclude deactivated
-    const { rows } = await pool.query("SELECT id, data, created_at FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)", [endpoint]);
+    const { rows } = await pool.query("SELECT id, data, created_at, difficulty FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)", [endpoint]);
     if (rows.length === 0) {
       return res.status(404).json({ ok: false, error: "Subscription not found or deactivated" });
     }
@@ -278,9 +312,10 @@ app.post("/admin/send-now", guard, async (req, res) => {
     const row = rows[0];
     const sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
     const language = sub.language || 'italian';
+    const difficulty = row.difficulty || 'easy';
 
-    // Generate a phrase for this user's language
-    const phrase = randomPhraseNoRepeat(language);
+    // Generate a phrase for this user's language and difficulty
+    const phrase = randomPhraseNoRepeat(language, difficulty);
     let payload;
 
     if (language === 'spanish') {

@@ -55,7 +55,7 @@ h1 {
 
 #github {
   font-size: 10px;
-  font-weight: bold;
+  font-weight: 700;
   display: flex;
   gap: 2px;
   align-items: center;
@@ -88,7 +88,7 @@ h1 {
 }
 
 #sendNow, #sub {
-  border: 1px solid rgba(0, 0, 255, 1);
+  border: 2px solid rgba(0, 0, 255, 1);
   border-radius: 9999px;
   padding: 10px 20px;
   font-size: 14px;
@@ -118,6 +118,7 @@ h1 {
 .last-notification > label {
   font-size:12px;
   font-weight: normal;
+  margin-bottom:5px;
   opacity: 0.3;
   color: black;
   display: flex;
@@ -185,10 +186,29 @@ h1 {
   font-size: 14px;
 }
 
-#language-select {
-  border: 1px solid #0000FF;
-  border-radius: 9999px;
+#language-container .selection-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+}
+
+#language-container .selection-container #language-select {
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+  border-top-right-radius: 400px;
+  border-bottom-right-radius: 400px;
+}
+#language-container .selection-container #difficulty-select {
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+  border-top-left-radius: 400px;
+  border-bottom-left-radius: 400px;
+}
+.custom-select {
+  border: 2px solid #0000FF;
   padding: 10px 20px;
+  color: rgba(0, 0, 255, 1);
   font-size: 14px;
   cursor: pointer;
   text-align: center !important;
@@ -203,24 +223,41 @@ h1 {
 }
 
 /* Extra Safari arrow removal */
-#language-select::-ms-expand {
+.custom-select::-ms-expand {
   display: none;
 }
 
-#language-select::-webkit-inner-spin-button,
-#language-select::-webkit-outer-spin-button {
+.custom-select::-webkit-inner-spin-button,
+.custom-select::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-#language-select:disabled {
+.custom-select:disabled {
   border-color: rgba(0, 0, 255, 0.2);
   color: black;
   cursor:not-allowed;
 }
 
-#language-select:focus {
-  border-color: #4169e1;
+/* Difficulty Loading State */
+.difficulty-select-container {
+  position: relative;
+  display: inline-block;
+}
+
+.difficulty-loading {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.difficulty-loading .ios-icon {
+  width: 12px;
+  height: 12px;
+  color: rgba(0, 0, 255, 0.7);
 }
 
 /* iOS Tip */
@@ -237,7 +274,7 @@ h1 {
   align-items: center;
   gap: 4px;
   background-color: rgba(0, 0, 0, 0.01);
-  border: 1px dotted rgba(0, 0, 0, 0.1);
+  border: 2px dotted rgba(0, 0, 0, 0.1);
   padding: 10px 20px;
   border-radius: 9999px;
   margin-top: 10px;
