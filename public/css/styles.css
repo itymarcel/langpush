@@ -41,14 +41,14 @@ body {
 .headline-container {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
   margin-bottom: 2rem;
 }
 
 h1 {
   font-size: 14px;
-  color: #333;
+  color: rgba(0, 0, 255, 1);
   font-weight: 800;
   margin: 0;
 }
@@ -60,7 +60,7 @@ h1 {
   gap: 2px;
   align-items: center;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.5);
+  color: rgba(0, 0, 0, 0.3);
 }
 
 #github a {
@@ -132,6 +132,7 @@ h1 {
 
 #sendNow {
   background-color: rgba(0, 0, 255, 0.9);
+  border-color: rgba(0, 0, 255, 1);
   color: white;
 }
 
