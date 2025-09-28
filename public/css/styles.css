@@ -96,10 +96,38 @@ h1 {
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   transition: background-color 0.2s, transform 0.1s;
   justify-content: center;
   margin-bottom: 10px;
+}
+#sendNow > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.last-notification {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 35px;
+}
+.last-notification > label {
+  font-size:12px;
+  font-weight: normal;
+  opacity: 0.3;
+  color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap:2px;
+}
+
+.last-notification > label > .ios-icon {
+  stroke-width: 2px;
 }
 
 #sendNow {
@@ -109,6 +137,14 @@ h1 {
 
 #sendNow:hover:not(:disabled) {
   background-color: rgba(0, 0, 255, 1);
+}
+
+#sendNow:disabled {
+  background-color: rgba(0, 0, 255, 0.05);
+  border-color: rgba(0, 0, 255, 0.2);
+  color: rgba(0, 0, 255, 1);
+  cursor: not-allowed;
+  opacity: 0.3;
 }
 
 #sub {
@@ -213,7 +249,7 @@ h1 {
 
 /* Subscribe Info */
 #subscribe-info {
-  margin-top: 1rem;
+  margin-top: 20px;
   font-size: 12px;
   color: rgba(0, 0, 0, 0.6);
   text-align: center;

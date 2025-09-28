@@ -22,7 +22,11 @@ const pool = new Pool({
 await pool.query(`CREATE TABLE IF NOT EXISTS subs (
   id BIGSERIAL PRIMARY KEY,
   data JSONB NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_phrase_original TEXT,
+  last_phrase_english TEXT,
+  last_phrase_language VARCHAR(20),
+  last_notification_sent_at TIMESTAMP
 )`)
 
 // Add created_at column if it doesn't exist (for existing databases)
@@ -31,6 +35,25 @@ await pool.query(`
   BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='created_at') THEN
       ALTER TABLE subs ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+  END $$;
+`)
+
+// Add last notification columns if they don't exist (for existing databases)
+await pool.query(`
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_original') THEN
+      ALTER TABLE subs ADD COLUMN last_phrase_original TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_english') THEN
+      ALTER TABLE subs ADD COLUMN last_phrase_english TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_phrase_language') THEN
+      ALTER TABLE subs ADD COLUMN last_phrase_language VARCHAR(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='last_notification_sent_at') THEN
+      ALTER TABLE subs ADD COLUMN last_notification_sent_at TIMESTAMP;
     END IF;
   END $$;
 `)
@@ -44,6 +67,40 @@ app.get("/vapidPublicKey", (req, res) => {
 
 app.get("/admin-key", (req, res) => {
   res.send(process.env.ADMIN_KEY);
+});
+
+// Get last notification for a subscription
+app.get("/last-notification", async (req, res) => {
+  const { endpoint } = req.query;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+
+  try {
+    const { rows } = await pool.query(
+      "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE data->>'endpoint' = $1",
+      [endpoint]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Subscription not found" });
+    }
+
+    const notification = rows[0];
+    if (!notification.last_phrase_original) {
+      return res.json({ ok: true, hasNotification: false });
+    }
+
+    res.json({
+      ok: true,
+      hasNotification: true,
+      original: notification.last_phrase_original,
+      english: notification.last_phrase_english,
+      language: notification.last_phrase_language,
+      sentAt: notification.last_notification_sent_at
+    });
+  } catch (error) {
+    console.error("Get last notification error:", error);
+    res.status(500).json({ ok: false, error: "Database error" });
+  }
 });
 
 function guard(req, res, next) {
@@ -119,6 +176,13 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
       // Create clean subscription object without our custom language field
       const { language: _, ...cleanSub } = sub;
       await webpush.sendNotification(cleanSub, payload);
+
+      // Update last notification info
+      await pool.query(
+        "UPDATE subs SET last_phrase_original = $1, last_phrase_english = $2, last_phrase_language = $3, last_notification_sent_at = CURRENT_TIMESTAMP WHERE id = $4",
+        [phrase[language === 'spanish' ? 'es' : language === 'french' ? 'fr' : language === 'japanese' ? 'ja' : 'it'], phrase.en, language, row.id]
+      );
+
       sent++;
     } catch (e) {
       failed++;
@@ -163,6 +227,12 @@ app.post("/admin/send-now", guard, async (req, res) => {
     // Create clean subscription object without our custom language field
     const { language: _, ...cleanSub } = sub;
     await webpush.sendNotification(cleanSub, payload);
+
+    // Update last notification info
+    await pool.query(
+      "UPDATE subs SET last_phrase_original = $1, last_phrase_english = $2, last_phrase_language = $3, last_notification_sent_at = CURRENT_TIMESTAMP WHERE id = $4",
+      [phrase[language === 'spanish' ? 'es' : language === 'french' ? 'fr' : language === 'japanese' ? 'ja' : 'it'], phrase.en, language, row.id]
+    );
 
     res.json({ ok: true, sent: 1 });
   } catch (error) {

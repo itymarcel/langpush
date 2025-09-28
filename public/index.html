@@ -69,9 +69,15 @@
       </select>
     </div>
 
+    <div class="last-notification" style="display: none;">
+      <label class=""><i data-lucide="history" class='ios-icon'></i> Last</label>
+      <div class="original"></div>
+      <div class="english"></div>
+    </div>
+
     <button id="sendNow" style="display: none;">
       <span class="send-state">
-        <i data-lucide="send" class="ios-icon"></i> Send One Now
+        <i data-lucide="send" class="ios-icon"></i> Get One Now
       </span>
       <span class="sending-state" style="display: none;">
         <i data-lucide="loader" class="ios-icon rotating"></i> Sending...
@@ -81,6 +87,9 @@
       </span>
       <span class="failed-state" style="display: none;">
         <i data-lucide="x" class="ios-icon"></i> Failed
+      </span>
+      <span class="cooldown-state" style="display: none;">
+        <i data-lucide="clock" class="ios-icon"></i><span class="text"> Wait 60s</span>
       </span>
     </button>
 

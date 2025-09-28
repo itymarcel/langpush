@@ -20,6 +20,8 @@ class LinguaPush {
     this.initializeIcons();
     this.setupLiveReload();
     this.initializeChickenPopover();
+    this.loadLastNotification();
+    this.checkCooldownOnLoad();
   }
 
   /**
@@ -363,29 +365,37 @@ class LinguaPush {
     const sendingState = this.sendNowBtn.querySelector('.sending-state');
     const sentState = this.sendNowBtn.querySelector('.sent-state');
     const failedState = this.sendNowBtn.querySelector('.failed-state');
+    const cooldownState = this.sendNowBtn.querySelector('.cooldown-state');
 
     // Hide all states
     sendState.style.display = 'none';
     sendingState.style.display = 'none';
     sentState.style.display = 'none';
     failedState.style.display = 'none';
+    if (cooldownState) cooldownState.style.display = 'none';
 
     // Show the appropriate state
     switch (state) {
       case 'send':
-        sendState.style.display = 'block';
+        sendState.style.display = 'flex';
         this.sendNowBtn.disabled = false;
         break;
       case 'sending':
-        sendingState.style.display = 'block';
+        sendingState.style.display = 'flex';
         this.sendNowBtn.disabled = true;
         break;
       case 'sent':
-        sentState.style.display = 'block';
+        sentState.style.display = 'flex';
         this.sendNowBtn.disabled = true;
         break;
       case 'failed':
-        failedState.style.display = 'block';
+        failedState.style.display = 'flex';
+        this.sendNowBtn.disabled = true;
+        break;
+      case 'cooldown':
+        if (cooldownState) {
+          cooldownState.style.display = 'flex';
+        }
         this.sendNowBtn.disabled = true;
         break;
     }
@@ -415,9 +425,12 @@ class LinguaPush {
 
       if (response.ok) {
         this.setSendButtonState('sent');
-        setTimeout(() => {
-          this.setSendButtonState('send');
-        }, 2000);
+        // Reload last notification after sending
+        this.loadLastNotification();
+
+        // Start 60-second cooldown with countdown
+        this.saveCooldownToCache(60);
+        this.startCooldown(60);
       } else {
         throw new Error('Failed to send notification');
       }
@@ -427,6 +440,47 @@ class LinguaPush {
       setTimeout(() => {
         this.setSendButtonState('send');
       }, 2000);
+    }
+  }
+
+  saveCooldownToCache(seconds) {
+    const endTime = Date.now() + (seconds * 1000);
+    localStorage.setItem('sendNowCooldown', endTime);
+  }
+
+  checkCooldownOnLoad() {
+    const endTime = localStorage.getItem('sendNowCooldown');
+    if (!endTime) return;
+
+    const remaining = Math.ceil((parseInt(endTime) - Date.now()) / 1000);
+    if (remaining > 0) {
+      this.startCooldown(remaining);
+    } else {
+      localStorage.removeItem('sendNowCooldown');
+    }
+  }
+
+  startCooldown(seconds) {
+    let remaining = seconds;
+    this.setSendButtonState('cooldown');
+    this.updateCooldownText(remaining);
+
+    const interval = setInterval(() => {
+      remaining--;
+      this.updateCooldownText(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        localStorage.removeItem('sendNowCooldown');
+        this.setSendButtonState('send');
+      }
+    }, 1000);
+  }
+
+  updateCooldownText(seconds) {
+    const sendState = this.sendNowBtn.querySelector('.cooldown-state .text');
+    if (sendState) {
+      sendState.textContent = ` Wait ${seconds}s`;
     }
   }
 
@@ -446,6 +500,56 @@ class LinguaPush {
         offset: 15,
         className: 'chicken-popover'
       });
+    }
+  }
+
+  /**
+   * Load and display last notification
+   */
+  async loadLastNotification() {
+    try {
+      const serviceWorker = await this.readyServiceWorker();
+      if (!serviceWorker) return;
+
+      const subscription = await serviceWorker.pushManager.getSubscription();
+      if (!subscription) return;
+
+      const response = await fetch(`/last-notification?endpoint=${encodeURIComponent(subscription.endpoint)}`);
+      const data = await response.json();
+
+      if (data.ok && data.hasNotification) {
+        this.displayLastNotification(data.original, data.english, data.language, data.sentAt);
+      } else {
+        this.hideLastNotification();
+      }
+    } catch (error) {
+      console.error("Failed to load last notification:", error);
+      this.hideLastNotification();
+    }
+  }
+
+  /**
+   * Display last notification in the UI
+   */
+  displayLastNotification(original, english, language, sentAt) {
+    const lastNotificationDiv = document.querySelector('.last-notification');
+    const originalDiv = lastNotificationDiv.querySelector('.original');
+    const englishDiv = lastNotificationDiv.querySelector('.english');
+
+    if (originalDiv && englishDiv) {
+      originalDiv.textContent = original;
+      englishDiv.textContent = english;
+      lastNotificationDiv.style.display = 'flex';
+    }
+  }
+
+  /**
+   * Hide last notification
+   */
+  hideLastNotification() {
+    const lastNotificationDiv = document.querySelector('.last-notification');
+    if (lastNotificationDiv) {
+      lastNotificationDiv.style.display = 'none';
     }
   }
 
