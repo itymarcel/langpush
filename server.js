@@ -208,7 +208,7 @@ if (process.env.NODE_ENV !== 'production') {
 app.use(express.static("public"));
 
 const port = process.env.PORT || 3000;
-const isProduction = process.env.NODE_ENV === 'production' || !fs.existsSync('./localhost+2-key.pem');
+const isProduction = process.env.ENVIRONMENT === 'production';
 const host = isProduction ? '0.0.0.0' : 'localhost';
 
 // In production or when no certs exist, use HTTP only
