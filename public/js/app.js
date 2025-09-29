@@ -69,6 +69,7 @@ class LinguaPush {
     this.initializeChickenPopover();
     this.loadLastNotification();
     this.checkCooldownOnLoad();
+    this.updateIOSTips();
   }
 
   /**
@@ -176,14 +177,65 @@ class LinguaPush {
   }
 
   /**
+   * Detect if user is on iOS
+   */
+  isIOS() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+
+  /**
+   * Detect if user is on iOS Safari (not third-party browser)
+   */
+  isIOSSafari() {
+    const isIos = this.isIOS();
+    const isSafari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios|opios/i.test(navigator.userAgent);
+    return isIos && isSafari;
+  }
+
+  /**
+   * Detect if user is on iOS but not Safari
+   */
+  isIOSThirdParty() {
+    const isIos = this.isIOS();
+    const isSafari = this.isIOSSafari();
+    return isIos && !isSafari;
+  }
+
+  /**
    * Check if subscribe info should be shown (not on iOS or iOS and installed)
    */
   shouldShowSubscribeInfo() {
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isIos = this.isIOS()
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 
     // Show info if not iOS, or if iOS and installed as PWA
     return !isIos || (isIos && isStandalone);
+  }
+
+  /**
+   * Show appropriate iOS tip based on browser
+   */
+  updateIOSTips() {
+    const iosTip = document.getElementById('iosTip');
+    const iosThirdpartyTip = document.getElementById('iosThirdpartyTip');
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+
+    // Hide both tips by default
+    if (iosTip) iosTip.style.display = 'none';
+    if (iosThirdpartyTip) iosThirdpartyTip.style.display = 'none';
+
+    // Don't show tips if already installed as PWA
+    if (isStandalone) return;
+
+    if (this.isIOSThirdParty()) {
+      // Show third-party browser tip and hide subscribe info
+      if (iosThirdpartyTip) iosThirdpartyTip.style.display = 'flex';
+      if (this.elements.subscribeInfo) this.elements.subscribeInfo.innerHTML = '';
+    } else if (this.isIOSSafari()) {
+      // Show Safari tip and hide subscribe info
+      if (iosTip) iosTip.style.display = 'flex';
+      if (this.elements.subscribeInfo) this.elements.subscribeInfo.innerHTML = '';
+    }
   }
 
   /**
@@ -768,3 +820,10 @@ class LinguaPush {
 document.addEventListener('DOMContentLoaded', () => {
   new LinguaPush();
 });
+
+// Global function for copying link (called from onclick in HTML)
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href)
+    .then(() => alert("Link copied! Please paste into Safari."))
+    .catch(() => alert("Could not copy. Long-press the address bar and copy manually."));
+}

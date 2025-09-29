@@ -28,7 +28,7 @@ window.addEventListener("appinstalled", () => {
 const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 if (isIos && !isStandalone) {
-  iosTip.style.display = "block";
+  iosTip.style.display = "flex";
   // Hide subscribe button and language dropdown on iOS when not in standalone mode
   const subBtn = document.getElementById("sub");
   const languageDropdown = document.getElementById("language-container");
@@ -39,3 +39,5 @@ if (isIos && !isStandalone) {
     languageDropdown.style.display = "none";
   }
 }
+
+  
