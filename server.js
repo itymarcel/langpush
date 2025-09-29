@@ -405,8 +405,8 @@ const port = process.env.PORT || 3000;
 const isProduction = process.env.ENVIRONMENT === 'production';
 const host = isProduction ? '0.0.0.0' : 'localhost';
 
-// In production or when no certs exist, use HTTP only
-if (isProduction) {
+// In production, when HTTPS is disabled, or when no certs exist, use HTTP only
+if (isProduction || process.env.DISABLE_HTTPS === 'true') {
   app.listen(port, host, () => console.log(`Server running on http://${host}:${port}`));
 } else {
   // Try to use HTTPS in development if certificates exist
