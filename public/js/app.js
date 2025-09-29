@@ -27,7 +27,7 @@ class LinguaPush {
         SUBSCRIBE_INFO: 'subscribe-info',
         CHICKEN_BTN: 'chickenBtn',
         LAST_NOTIFICATION: '.last-notification',
-        LAST_NOTIFICATION_ORIGINAL: '.last-notification .original',
+        LAST_NOTIFICATION_ORIGINAL: '.last-notification .original .actual-text',
         LAST_NOTIFICATION_ENGLISH: '.last-notification .english'
       },
       LANGUAGES: {
@@ -36,7 +36,7 @@ class LinguaPush {
         FRENCH: 'french',
         JAPANESE: 'japanese'
       },
-      COOLDOWN_DURATION: 60
+      COOLDOWN_DURATION: 3,
     };
 
     // Cache DOM elements
@@ -54,6 +54,7 @@ class LinguaPush {
 
     // State
     this.reg = null; // service worker registration cache
+    this.waitingForFreshNotification = false; // flag for "Get One Now" clicks
 
     this.init();
   }
@@ -156,7 +157,7 @@ class LinguaPush {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
         }
-        this.elements.subscribeInfo.innerHTML = "";
+        this.elements.subscribeInfo.style.display = "none";
         break;
 
       default: // loading
@@ -168,7 +169,7 @@ class LinguaPush {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
         }
-        this.elements.subscribeInfo.innerHTML = "";
+        this.elements.subscribeInfo.style.display = "none";
         break;
     }
 
@@ -195,8 +196,23 @@ class LinguaPush {
   updateSubscribedMessage(languageValue, difficultyValue = 'easy') {
     const languageName = this.getLanguageDisplayName(languageValue);
     const difficultyName = difficultyValue === 'medium' ? 'medium' : 'easy';
+
+    // Hide unsubscribed message and show subscribed message
+    const subscribedMessage = document.getElementById('subscribed-message');
+    const unsubscribedMessage = document.getElementById('unsubscribed-message');
+    const subscribedLanguage = document.getElementById('subscribed-language');
+    const subscribedDifficulty = document.getElementById('subscribed-difficulty');
+
+    if (subscribedMessage && unsubscribedMessage) {
+      unsubscribedMessage.style.display = 'none';
+      subscribedMessage.style.display = 'block';
+
+      if (subscribedLanguage) subscribedLanguage.textContent = languageName;
+      if (subscribedDifficulty) subscribedDifficulty.textContent = difficultyName;
+    }
+
     if (this.elements.subscribeInfo) {
-      this.elements.subscribeInfo.innerHTML = `You're receiving <b>three (3)</b> hand picked <br/><b>${languageName} ↔ English</b> phrase pairs <br/>a day (${difficultyName} level).`;
+      this.elements.subscribeInfo.style.display = 'block';
     }
   }
 
@@ -206,8 +222,23 @@ class LinguaPush {
   updateUnsubscribedMessage(languageValue, difficultyValue = 'easy') {
     const languageName = this.getLanguageDisplayName(languageValue);
     const difficultyName = difficultyValue === 'medium' ? 'medium' : 'easy';
+
+    // Hide subscribed message and show unsubscribed message
+    const subscribedMessage = document.getElementById('subscribed-message');
+    const unsubscribedMessage = document.getElementById('unsubscribed-message');
+    const unsubscribedLanguage = document.getElementById('unsubscribed-language');
+    const unsubscribedDifficulty = document.getElementById('unsubscribed-difficulty');
+
+    if (subscribedMessage && unsubscribedMessage) {
+      subscribedMessage.style.display = 'none';
+      unsubscribedMessage.style.display = 'block';
+
+      if (unsubscribedLanguage) unsubscribedLanguage.textContent = languageName;
+      if (unsubscribedDifficulty) unsubscribedDifficulty.textContent = difficultyName;
+    }
+
     if (this.elements.subscribeInfo) {
-      this.elements.subscribeInfo.innerHTML = `Once subscribed, you'll receive <br/><b>three (3)</b> notifications a day <br/>with hand picked <b><span id="language-name">${languageName}</span> ↔ English</b><br/>phrase pairs (${difficultyName} level).`;
+      this.elements.subscribeInfo.style.display = 'block';
     }
   }
 
@@ -617,6 +648,10 @@ class LinguaPush {
 
       if (response.ok) {
         this.setSendButtonState('sent');
+
+        // Set flag to show reveal mechanism for the incoming notification
+        this.waitingForFreshNotification = true;
+
         // Reload last notification after sending
         this.loadLastNotification();
 
@@ -724,8 +759,42 @@ class LinguaPush {
    */
   displayLastNotification(original, english, language, sentAt) {
     if (this.elements.lastNotificationOriginal && this.elements.lastNotificationEnglish) {
+      const originalContainer = document.querySelector('.last-notification .original');
+      const revealText = originalContainer.querySelector('.reveal-text');
+      const actualText = originalContainer.querySelector('.actual-text');
+
       this.elements.lastNotificationOriginal.textContent = original;
       this.elements.lastNotificationEnglish.textContent = english;
+
+      // Check if this is a fresh notification from "Get One Now"
+      if (this.waitingForFreshNotification) {
+        // Add unrevealed class and show "Reveal" text
+        originalContainer.classList.add('unrevealed');
+        originalContainer.classList.remove('revealed');
+        revealText.style.display = 'block';
+        actualText.style.display = 'none';
+
+        // Add click handler to reveal the text
+        const revealHandler = () => {
+          originalContainer.classList.remove('unrevealed');
+          originalContainer.classList.add('revealed');
+          revealText.style.display = 'none';
+          actualText.style.display = 'block';
+          originalContainer.removeEventListener('click', revealHandler);
+        };
+
+        originalContainer.addEventListener('click', revealHandler);
+
+        // Reset the flag
+        this.waitingForFreshNotification = false;
+      } else {
+        // Show text normally for existing notifications
+        originalContainer.classList.remove('unrevealed');
+        originalContainer.classList.add('revealed');
+        revealText.style.display = 'none';
+        actualText.style.display = 'block';
+      }
+
       this.elements.lastNotification.style.display = 'flex';
     }
   }

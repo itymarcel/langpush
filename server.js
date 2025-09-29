@@ -224,6 +224,70 @@ app.patch("/subscribe/difficulty", async (req, res) => {
   }
 });
 
+// Helper function to create notification payload based on language and phrase
+function createNotificationPayload(language, phrase) {
+  const languageConfig = {
+    spanish: {
+      title: 'New Spanish Phrase',
+      flag: '🇪🇸',
+      phraseKey: 'es'
+    },
+    french: {
+      title: 'New French Phrase',
+      flag: '🇫🇷',
+      phraseKey: 'fr'
+    },
+    japanese: {
+      title: 'New Japanese Phrase',
+      flag: '🇯🇵',
+      phraseKey: 'ja'
+    },
+    italian: {
+      title: 'New Italian Phrase',
+      flag: '🇮🇹',
+      phraseKey: 'it'
+    }
+  };
+
+  const config = languageConfig[language] || languageConfig.italian;
+  return JSON.stringify({
+    title: `Translate to ${config.flag} ${language.charAt(0).toUpperCase() + language.slice(1)}`,
+    body: `${phrase.en}`,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png'
+  });
+}
+
+// Helper function to get the original phrase text for database storage
+function getOriginalPhraseText(language, phrase) {
+  const phraseKeys = {
+    spanish: 'es',
+    french: 'fr',
+    japanese: 'ja',
+    italian: 'it'
+  };
+  const key = phraseKeys[language] || phraseKeys.italian;
+  return phrase[key];
+}
+
+// Helper function to send push notification to a single subscription
+async function sendPushToSubscription(subscriptionRow, phrase) {
+  const sub = typeof subscriptionRow.data === "string" ? JSON.parse(subscriptionRow.data) : subscriptionRow.data;
+  const language = sub.language || 'italian';
+
+  const payload = createNotificationPayload(language, phrase);
+
+  // Create clean subscription object without our custom language field
+  const { language: _, ...cleanSub } = sub;
+  await webpush.sendNotification(cleanSub, payload);
+
+  // Update last notification info
+  await pool.query(
+    "UPDATE subs SET last_phrase_original = $1, last_phrase_english = $2, last_phrase_language = $3, last_notification_sent_at = CURRENT_TIMESTAMP WHERE id = $4",
+    [getOriginalPhraseText(language, phrase), phrase.en, language, subscriptionRow.id]
+  );
+}
+
 app.post("/admin/broadcast", guard, async (_req, res) => {
   const { rows } = await pool.query("SELECT id, data, created_at, difficulty FROM subs WHERE deactivated = FALSE OR deactivated IS NULL");
 
@@ -233,8 +297,8 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
 
   for (const row of rows) {
     const sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
-    const language = sub.language || 'italian'; // Default to Italian if no language specified
-    const difficulty = row.difficulty || 'easy'; // Default to easy if no difficulty specified
+    const language = sub.language || 'italian';
+    const difficulty = row.difficulty || 'easy';
 
     // Generate phrase for this language+difficulty combination if we haven't already
     const phraseKey = `${language}_${difficulty}`;
@@ -243,49 +307,9 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
     }
 
     const phrase = phrases[phraseKey];
-    let payload;
-
-    if (language === 'spanish') {
-      payload = JSON.stringify({
-        title: 'New Spanish Phrase',
-        body: `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    } else if (language === 'french') {
-      payload = JSON.stringify({
-        title: 'New French Phrase',
-        body: `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    } else if (language === 'japanese') {
-      payload = JSON.stringify({
-        title: 'New Japanese Phrase',
-        body: `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    } else {
-      payload = JSON.stringify({
-        title: 'New Italian Phrase',
-        body: `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    }
 
     try {
-      // Create clean subscription object without our custom language field
-      const { language: _, ...cleanSub } = sub;
-      await webpush.sendNotification(cleanSub, payload);
-
-      // Update last notification info
-      await pool.query(
-        "UPDATE subs SET last_phrase_original = $1, last_phrase_english = $2, last_phrase_language = $3, last_notification_sent_at = CURRENT_TIMESTAMP WHERE id = $4",
-        [phrase[language === 'spanish' ? 'es' : language === 'french' ? 'fr' : language === 'japanese' ? 'ja' : 'it'], phrase.en, language, row.id]
-      );
-
+      await sendPushToSubscription(row, phrase);
       sent++;
     } catch (e) {
       failed++;
@@ -316,47 +340,8 @@ app.post("/admin/send-now", guard, async (req, res) => {
 
     // Generate a phrase for this user's language and difficulty
     const phrase = randomPhraseNoRepeat(language, difficulty);
-    let payload;
 
-    if (language === 'spanish') {
-      payload = JSON.stringify({
-        title: 'New Spanish Phrase',
-        body: `🇪🇸 ${phrase.es}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    } else if (language === 'french') {
-      payload = JSON.stringify({
-        title: 'New French Phrase',
-        body: `🇫🇷 ${phrase.fr}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    } else if (language === 'japanese') {
-      payload = JSON.stringify({
-        title: 'New Japanese Phrase',
-        body: `🇯🇵 ${phrase.ja}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    } else {
-      payload = JSON.stringify({
-        title: 'New Italian Phrase',
-        body: `🇮🇹 ${phrase.it}\n🇬🇧 ${phrase.en}`,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png'
-      });
-    }
-
-    // Create clean subscription object without our custom language field
-    const { language: _, ...cleanSub } = sub;
-    await webpush.sendNotification(cleanSub, payload);
-
-    // Update last notification info
-    await pool.query(
-      "UPDATE subs SET last_phrase_original = $1, last_phrase_english = $2, last_phrase_language = $3, last_notification_sent_at = CURRENT_TIMESTAMP WHERE id = $4",
-      [phrase[language === 'spanish' ? 'es' : language === 'french' ? 'fr' : language === 'japanese' ? 'ja' : 'it'], phrase.en, language, row.id]
-    );
+    await sendPushToSubscription(row, phrase);
 
     res.json({ ok: true, sent: 1 });
   } catch (error) {

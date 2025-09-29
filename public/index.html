@@ -78,9 +78,12 @@
     </div>
 
     <div class="last-notification" style="display: none;">
-      <label class=""><i data-lucide="history" class='ios-icon'></i></label>
-      <div class="original"></div>
+      <label class="">Last</label>
       <div class="english"></div>
+      <div class="original">
+        <div class="reveal-text" style="display: none;">Reveal</div>
+        <div class="actual-text"></div>
+      </div>
     </div>
 
     <button id="sendNow" style="display: none;">
@@ -117,6 +120,17 @@
     </button>
 
     <div id="subscribe-info">
+      <div id="subscribed-message" style="display: none;">
+        You're receiving <b>three</b> hand picked <br/>
+        <b><span id="subscribed-language">Italian</span> ↔ English</b> phrase pairs <br/>
+        a day (<span id="subscribed-difficulty">easy</span> level).<br/><br/> 
+      </div>
+      <div id="unsubscribed-message" style="display: none;">
+        Once subscribed, you'll receive <br/>
+        <b>three</b> notifications a day <br/>
+        with hand picked <b><span id="unsubscribed-language">Italian</span> ↔ English</b><br/>
+        phrase pairs (<span id="unsubscribed-difficulty">easy</span> level).
+      </div>
     </div>
   </div>
 

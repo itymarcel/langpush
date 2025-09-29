@@ -44,6 +44,17 @@ function isIOSThirdParty() {
   return isIos && !isSafari;
 }
 
+function hideMainUI() {
+  // Hide subscribe button and language dropdown on iOS when not in standalone mode
+  const subBtn = document.getElementById("sub");
+  const languageDropdown = document.getElementById("language-container");
+  const subscribeInfo = document.getElementById("subscribe-info");
+
+  if (subBtn) subBtn.style.display = "none";
+  if (languageDropdown) languageDropdown.style.display = "none";
+  if (subscribeInfo) subscribeInfo.style.display = "none";
+}
+
 function handleIOSTips() {
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 
@@ -63,17 +74,6 @@ function handleIOSTips() {
     if (iosTip) iosTip.style.display = "flex";
     hideMainUI();
   }
-}
-
-function hideMainUI() {
-  // Hide subscribe button and language dropdown on iOS when not in standalone mode
-  const subBtn = document.getElementById("sub");
-  const languageDropdown = document.getElementById("language-container");
-  const subscribeInfo = document.getElementById("subscribe-info");
-
-  if (subBtn) subBtn.style.display = "none";
-  if (languageDropdown) languageDropdown.style.display = "none";
-  if (subscribeInfo) subscribeInfo.innerHTML = "";
 }
 
 // Run iOS tip logic when DOM is loaded
