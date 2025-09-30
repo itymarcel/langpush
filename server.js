@@ -383,8 +383,28 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// serve static site
-app.use(express.static("public"));
+// serve static site with proper cache headers
+app.use(express.static("public", {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+
+    else if (path.endsWith('.js') || path.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
+    }
+
+    else if (path.endsWith('.webmanifest') || path.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else if (path.endsWith('.js') || path.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'public, max-age=604800'); // 1 week
+    }
+  }
+}))
 
 const port = process.env.PORT || 3000;
 const isProduction = process.env.ENVIRONMENT === 'production';

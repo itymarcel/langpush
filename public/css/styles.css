@@ -116,17 +116,51 @@ h1 {
   font-weight: 600;
   margin-bottom: 35px;
 }
-.last-notification > label {
+
+.last-notification-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 5px;
+}
+
+.last-notification > label,
+.last-notification-header > label {
   font-size:10px;
   font-weight: medium;
   text-transform: uppercase;
-  margin-bottom:5px;
   opacity: 0.3;
   color: black;
   display: flex;
   align-items: center;
   justify-content: center;
   gap:2px;
+  margin: 0;
+}
+
+.refresh-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, opacity 0.2s;
+  opacity: 0.3;
+}
+
+.refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.2;
+}
+
+.refresh-btn .ios-icon {
+  width: 12px;
+  height: 12px;
+  color: black;
+  stroke-width: 2px;
 }
 
 .last-notification > label > .ios-icon {

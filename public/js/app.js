@@ -28,7 +28,8 @@ class LinguaPush {
         CHICKEN_BTN: 'chickenBtn',
         LAST_NOTIFICATION: '.last-notification',
         LAST_NOTIFICATION_ORIGINAL: '.last-notification .original .actual-text',
-        LAST_NOTIFICATION_ENGLISH: '.last-notification .english'
+        LAST_NOTIFICATION_ENGLISH: '.last-notification .english',
+        LAST_NOTIFICATION_REFRESH_BTN: 'refreshLastBtn',
       },
       LANGUAGES: {
         ITALIAN: 'italian',
@@ -49,7 +50,8 @@ class LinguaPush {
       chickenBtn: document.getElementById(this.CONSTANTS.SELECTORS.CHICKEN_BTN),
       lastNotification: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION),
       lastNotificationOriginal: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ORIGINAL),
-      lastNotificationEnglish: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ENGLISH)
+      lastNotificationEnglish: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ENGLISH),
+      refreshLastBtn: document.getElementById(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_REFRESH_BTN)
     };
 
     // State
@@ -91,6 +93,11 @@ class LinguaPush {
     this.elements.difficultySelect.addEventListener("change", (e) => {
       this.updateDifficultyDisplay(e.target.value);
     });
+
+    // Refresh last notification button
+    if (this.elements.refreshLastBtn) {
+      this.elements.refreshLastBtn.addEventListener("click", () => this.handleRefreshLastNotification());
+    }
 
     // Icons initialization
     document.addEventListener('DOMContentLoaded', () => {
@@ -726,6 +733,33 @@ class LinguaPush {
         offset: 15,
         className: 'chicken-popover'
       });
+    }
+  }
+
+  /**
+   * Handle refresh last notification button click
+   */
+  async handleRefreshLastNotification() {
+    if (this.elements.refreshLastBtn) {
+      // Add loading state to the refresh button
+      const icon = this.elements.refreshLastBtn.querySelector('i');
+      if (icon) {
+        icon.classList.add('rotating');
+      }
+      this.elements.refreshLastBtn.disabled = true;
+    }
+
+    try {
+      await this.loadLastNotification();
+    } finally {
+      // Remove loading state
+      if (this.elements.refreshLastBtn) {
+        const icon = this.elements.refreshLastBtn.querySelector('i');
+        if (icon) {
+          icon.classList.remove('rotating');
+        }
+        this.elements.refreshLastBtn.disabled = false;
+      }
     }
   }
 
