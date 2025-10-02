@@ -69,6 +69,61 @@ class LinguaPush {
   }
 
   /**
+   * Setup enhanced focus detection using multiple methods
+   */
+  setupFocusDetection() {
+    // Store initial state
+    this.isAppVisible = document.visibilityState === 'visible';
+    this.isAppFocused = document.hasFocus();
+
+    // Method 1: Visibility API
+    document.addEventListener('visibilitychange', () => {
+      const wasVisible = this.isAppVisible;
+      this.isAppVisible = document.visibilityState === 'visible';
+
+      console.log('App: Visibility changed to:', document.visibilityState);
+
+      if (!wasVisible && this.isAppVisible && this.pendingNotificationTimestamp) {
+        console.log('App: App became visible with pending notification');
+        this.handleNotificationNavigation(this.pendingNotificationTimestamp);
+        this.pendingNotificationTimestamp = null;
+      }
+    }, false);
+
+    // Method 2: Window focus/blur events
+    window.addEventListener('focus', () => {
+      const wasFocused = this.isAppFocused;
+      this.isAppFocused = true;
+
+      console.log('App: Window focus gained');
+
+      if (!wasFocused && this.pendingNotificationTimestamp) {
+        console.log('App: App gained focus with pending notification');
+        this.handleNotificationNavigation(this.pendingNotificationTimestamp);
+        this.pendingNotificationTimestamp = null;
+      }
+    }, false);
+
+    window.addEventListener('blur', () => {
+      this.isAppFocused = false;
+      console.log('App: Window focus lost');
+    }, false);
+
+    // Method 3: Page show event (for when page comes back from bfcache)
+    window.addEventListener('pageshow', (event) => {
+      console.log('App: Page show event, persisted:', event.persisted);
+
+      if (this.pendingNotificationTimestamp) {
+        console.log('App: Page show with pending notification');
+        setTimeout(() => {
+          this.handleNotificationNavigation(this.pendingNotificationTimestamp);
+          this.pendingNotificationTimestamp = null;
+        }, 100);
+      }
+    }, false);
+  }
+
+  /**
    * Initialize the application
    */
   init() {
@@ -146,10 +201,21 @@ class LinguaPush {
         console.log('App: Received broadcast message:', event.data);
         if (event.data.type === 'NOTIFICATION_CLICK' && event.data.sentAt) {
           console.log('App: Processing notification click via broadcast for timestamp:', event.data.sentAt);
-          this.handleNotificationNavigation(event.data.sentAt);
+
+          // Store the pending navigation for when app becomes visible
+          this.pendingNotificationTimestamp = event.data.sentAt;
+
+          // If app is currently visible, handle immediately
+          if (document.visibilityState === 'visible') {
+            this.handleNotificationNavigation(event.data.sentAt);
+            this.pendingNotificationTimestamp = null;
+          }
         }
       });
     }
+
+    // Enhanced app focus detection using multiple methods
+    this.setupFocusDetection();
   }
 
   /**
@@ -686,6 +752,7 @@ class LinguaPush {
   }
 
 
+
   /**
    * Handle Send One Now button click
    */
@@ -970,6 +1037,7 @@ class LinguaPush {
       this.handleNotificationNavigation(notificationTimestamp);
     }
   }
+
 
   /**
    * Handle navigation from notification click
