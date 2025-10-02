@@ -68,8 +68,18 @@ try {
         ALTER TABLE subs ADD COLUMN difficulty VARCHAR(20) DEFAULT 'easy';
         RAISE NOTICE 'Added column: difficulty';
       END IF;
+      -- Add Capacitor/iOS app support columns
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='platform') THEN
+        ALTER TABLE subs ADD COLUMN platform VARCHAR(20) DEFAULT 'web';
+        RAISE NOTICE 'Added column: platform';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='subs' AND column_name='ios_token') THEN
+        ALTER TABLE subs ADD COLUMN ios_token TEXT;
+        RAISE NOTICE 'Added column: ios_token';
+      END IF;
     END $$;
   `);
+
   console.log('✅ Database migration completed successfully');
 } catch (error) {
   console.error('❌ Database migration failed:', error);
@@ -220,6 +230,41 @@ app.patch("/subscribe/difficulty", async (req, res) => {
     res.json({ ok: true, updated: r.rowCount });
   } catch (error) {
     console.error("Update difficulty error:", error);
+    res.status(500).json({ ok: false, error: "Database error" });
+  }
+});
+
+// 4) update language for existing subscription
+app.patch("/subscribe/language", async (req, res) => {
+  const { endpoint, language } = req.body;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  if (!language || !['italian', 'spanish', 'french', 'japanese'].includes(language)) {
+    return res.status(400).json({ ok: false, error: "Invalid language. Must be 'italian', 'spanish', 'french', or 'japanese'" });
+  }
+
+  try {
+    // Get current subscription data
+    const { rows: current } = await pool.query(
+      "SELECT data FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
+      [endpoint]
+    );
+
+    if (current.length === 0) {
+      return res.status(404).json({ ok: false, error: "Active subscription not found" });
+    }
+
+    // Update the language in the subscription data
+    const subscriptionData = typeof current[0].data === "string" ? JSON.parse(current[0].data) : current[0].data;
+    subscriptionData.language = language;
+
+    const r = await pool.query(
+      "UPDATE subs SET data = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
+      [JSON.stringify(subscriptionData), endpoint]
+    );
+
+    res.json({ ok: true, updated: r.rowCount });
+  } catch (error) {
+    console.error("Update language error:", error);
     res.status(500).json({ ok: false, error: "Database error" });
   }
 });

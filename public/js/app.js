@@ -12,6 +12,7 @@ class LinguaPush {
         SUBSCRIBE: '/subscribe',
         SUBSCRIBE_EXISTS: '/subscribe/exists',
         SUBSCRIBE_DIFFICULTY: '/subscribe/difficulty',
+        SUBSCRIBE_LANGUAGE: '/subscribe/language',
         ADMIN_SUBS: '/admin/subs',
         ADMIN_SEND_NOW: '/admin/send-now',
         LAST_NOTIFICATION: '/last-notification',
@@ -252,14 +253,19 @@ class LinguaPush {
   /**
    * Update language display when language changes
    */
-  updateLanguageDisplay(languageValue) {
+  async updateLanguageDisplay(languageValue) {
     const difficultyValue = this.elements.difficultySelect.value;
-    // Update the info message with current selections
+
+    // Check if user is subscribed
     if (this.elements.subButton.classList.contains("outline")) {
-      // User is subscribed - don't update message dynamically
-      return;
+      // User is subscribed - update language on server
+      await this.updateSubscriptionLanguage(languageValue);
+      // Update the subscribed message with new language
+      this.updateSubscribedMessage(languageValue, difficultyValue);
+    } else {
+      // User is not subscribed - just update the message
+      this.updateUnsubscribedMessage(languageValue, difficultyValue);
     }
-    this.updateUnsubscribedMessage(languageValue, difficultyValue);
   }
 
   /**
@@ -325,6 +331,54 @@ class LinguaPush {
       alert("Failed to update difficulty setting. Please try again.");
     } finally {
       this.showDifficultyLoading(false);
+    }
+  }
+
+  /**
+   * Show language loading state
+   */
+  showLanguageLoading(show = true) {
+    const loadingElement = document.querySelector('.language-loading');
+    if (loadingElement) {
+      loadingElement.style.display = show ? 'block' : 'none';
+    }
+
+    // Disable the language select while loading
+    this.elements.languageSelect.disabled = show;
+  }
+
+  /**
+   * Update subscription language on server
+   */
+  async updateSubscriptionLanguage(language) {
+    this.showLanguageLoading(true);
+
+    try {
+      const serviceWorker = await this.readyServiceWorker();
+      if (!serviceWorker) return;
+
+      const subscription = await serviceWorker.pushManager.getSubscription();
+      if (!subscription) return;
+
+      const response = await fetch(this.CONSTANTS.ENDPOINTS.SUBSCRIBE_LANGUAGE, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          language: language
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update language: ${response.status}`);
+      }
+
+      console.log(`Language updated to: ${language}`);
+    } catch (error) {
+      console.error("Failed to update language:", error);
+      alert("Failed to update language setting. Please try again.");
+    } finally {
+      this.showLanguageLoading(false);
     }
   }
 
@@ -469,9 +523,11 @@ class LinguaPush {
       difficultySelect.value = savedDifficulty;
     }
 
-    // Enable/disable selectors - only disable language when subscribed, allow difficulty changes
-    languageSelect.disabled = isSubscribed;
-    // Only enable difficulty if not currently loading
+    // Enable/disable selectors - allow both language and difficulty changes for subscribed users
+    // Only disable language if currently loading
+    const isLoadingLanguage = document.querySelector('.language-loading')?.style.display === 'block';
+    languageSelect.disabled = isLoadingLanguage;
+    // Only disable difficulty if currently loading
     const isLoadingDifficulty = document.querySelector('.difficulty-loading')?.style.display === 'block';
     difficultySelect.disabled = isLoadingDifficulty;
 

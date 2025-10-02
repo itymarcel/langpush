@@ -308,12 +308,12 @@ h1 {
 }
 
 /* Difficulty Loading State */
-.difficulty-select-container {
+.language-select-container, .difficulty-select-container {
   position: relative;
   display: inline-block;
 }
 
-.difficulty-loading {
+.language-loading, .difficulty-loading {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -322,7 +322,7 @@ h1 {
   z-index: 1;
 }
 
-.difficulty-loading .ios-icon {
+.language-loading .ios-icon, .difficulty-loading .ios-icon {
   width: 12px;
   height: 12px;
   color: rgba(0, 0, 255, 0.7);
