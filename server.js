@@ -29,6 +29,17 @@ await pool.query(`CREATE TABLE IF NOT EXISTS subs (
   last_notification_sent_at TIMESTAMP
 )`)
 
+// Create notifications table for history
+await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
+  id BIGSERIAL PRIMARY KEY,
+  subscription_id BIGINT REFERENCES subs(id) ON DELETE CASCADE,
+  phrase_original TEXT NOT NULL,
+  phrase_english TEXT NOT NULL,
+  language VARCHAR(20) NOT NULL,
+  difficulty VARCHAR(20) NOT NULL,
+  sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`)
+
 // Add created_at column if it doesn't exist (for existing databases)
 await pool.query(`
   DO $$
@@ -80,6 +91,12 @@ try {
     END $$;
   `);
 
+  // Create indexes for better performance
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_platform ON subs(platform);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_ios_token ON subs(ios_token);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_deactivated ON subs(deactivated);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_subscription_sent_at ON notifications(subscription_id, sent_at DESC);`);
+
   console.log('✅ Database migration completed successfully');
 } catch (error) {
   console.error('❌ Database migration failed:', error);
@@ -128,6 +145,32 @@ app.get("/last-notification", async (req, res) => {
     });
   } catch (error) {
     console.error("Get last notification error:", error);
+    res.status(500).json({ ok: false, error: "Database error" });
+  }
+});
+
+// Get notification history for a subscription
+app.get("/notifications", async (req, res) => {
+  const { endpoint, limit = 10 } = req.query;
+  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+
+  try {
+    const { rows } = await pool.query(`
+      SELECT n.phrase_original, n.phrase_english, n.language, n.difficulty, n.sent_at
+      FROM notifications n
+      JOIN subs s ON n.subscription_id = s.id
+      WHERE s.data->>'endpoint' = $1
+      AND (s.deactivated = FALSE OR s.deactivated IS NULL)
+      ORDER BY n.sent_at DESC
+      LIMIT $2
+    `, [endpoint, parseInt(limit)]);
+
+    res.json({
+      ok: true,
+      notifications: rows
+    });
+  } catch (error) {
+    console.error("Get notifications error:", error);
     res.status(500).json({ ok: false, error: "Database error" });
   }
 });
@@ -316,20 +359,31 @@ function getOriginalPhraseText(language, phrase) {
 }
 
 // Helper function to send push notification to a single subscription
-async function sendPushToSubscription(subscriptionRow, phrase) {
+async function sendPushToSubscription(subscriptionRow, phrase, difficulty = 'easy') {
   const sub = typeof subscriptionRow.data === "string" ? JSON.parse(subscriptionRow.data) : subscriptionRow.data;
   const language = sub.language || 'italian';
 
   const payload = createNotificationPayload(language, phrase);
 
   // Create clean subscription object without our custom language field
-  const { language: _, ...cleanSub } = sub;
+  const cleanSub = {
+    endpoint: sub.endpoint,
+    keys: sub.keys
+  }
   await webpush.sendNotification(cleanSub, payload);
+
+  const originalText = getOriginalPhraseText(language, phrase);
 
   // Update last notification info
   await pool.query(
     "UPDATE subs SET last_phrase_original = $1, last_phrase_english = $2, last_phrase_language = $3, last_notification_sent_at = CURRENT_TIMESTAMP WHERE id = $4",
-    [getOriginalPhraseText(language, phrase), phrase.en, language, subscriptionRow.id]
+    [originalText, phrase.en, language, subscriptionRow.id]
+  );
+
+  // Save notification to history table
+  await pool.query(
+    "INSERT INTO notifications (subscription_id, phrase_original, phrase_english, language, difficulty) VALUES ($1, $2, $3, $4, $5)",
+    [subscriptionRow.id, originalText, phrase.en, language, difficulty]
   );
 }
 
@@ -354,7 +408,7 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
     const phrase = phrases[phraseKey];
 
     try {
-      await sendPushToSubscription(row, phrase);
+      await sendPushToSubscription(row, phrase, difficulty);
       sent++;
     } catch (e) {
       failed++;
@@ -386,7 +440,7 @@ app.post("/admin/send-now", guard, async (req, res) => {
     // Generate a phrase for this user's language and difficulty
     const phrase = randomPhraseNoRepeat(language, difficulty);
 
-    await sendPushToSubscription(row, phrase);
+    await sendPushToSubscription(row, phrase, difficulty);
 
     res.json({ ok: true, sent: 1 });
   } catch (error) {

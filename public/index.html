@@ -88,6 +88,9 @@
         <button id="refreshLastBtn" class="refresh-btn" title="Refresh last notification">
           <i data-lucide="refresh-cw" class="ios-icon"></i>
         </button>
+        <button id="historyBtn" style="display: none;" class="history-button">
+          <i data-lucide="history" class="ios-icon"></i>
+        </button>
       </div>
       <div class="english"></div>
       <div class="original">
@@ -96,23 +99,25 @@
       </div>
     </div>
 
-    <button id="sendNow" style="display: none;">
-      <span class="send-state">
-        <i data-lucide="send" class="ios-icon"></i> Get One Now
-      </span>
-      <span class="sending-state" style="display: none;">
-        <i data-lucide="loader" class="ios-icon rotating"></i> Sending...
-      </span>
-      <span class="sent-state" style="display: none;">
-        <i data-lucide="check" class="ios-icon"></i> Sent!
-      </span>
-      <span class="failed-state" style="display: none;">
-        <i data-lucide="x" class="ios-icon"></i> Failed
-      </span>
-      <span class="cooldown-state" style="display: none;">
-        <i data-lucide="clock" class="ios-icon"></i><span class="text"> Wait 60s</span>
-      </span>
-    </button>
+    <div class="history-send-container">
+      <button id="sendNow" style="display: none;">
+        <span class="send-state">
+          <i data-lucide="send" class="ios-icon"></i> Get One Now
+        </span>
+        <span class="sending-state" style="display: none;">
+          <i data-lucide="loader" class="ios-icon rotating"></i> Sending...
+        </span>
+        <span class="sent-state" style="display: none;">
+          <i data-lucide="check" class="ios-icon"></i> Sent!
+        </span>
+        <span class="failed-state" style="display: none;">
+          <i data-lucide="x" class="ios-icon"></i> Failed
+        </span>
+        <span class="cooldown-state" style="display: none;">
+          <i data-lucide="clock" class="ios-icon"></i><span class="text"> Wait 60s</span>
+        </span>
+      </button>
+    </div>
 
     <button id="sub">
       <span class="sub-state">
@@ -145,6 +150,7 @@
   </div>
 
   <script src="/js/popover.js"></script>
+  <script src="/js/history.js"></script>
   <script src="/js/app.js"></script>
   <script src="/install.js" defer></script>
 </body>

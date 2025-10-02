@@ -16,6 +16,7 @@ class LinguaPush {
         ADMIN_SUBS: '/admin/subs',
         ADMIN_SEND_NOW: '/admin/send-now',
         LAST_NOTIFICATION: '/last-notification',
+        NOTIFICATIONS: '/notifications',
         LIVE_RELOAD: '/live-reload'
       },
       SELECTORS: {
@@ -31,6 +32,7 @@ class LinguaPush {
         LAST_NOTIFICATION_ORIGINAL: '.last-notification .original .actual-text',
         LAST_NOTIFICATION_ENGLISH: '.last-notification .english',
         LAST_NOTIFICATION_REFRESH_BTN: 'refreshLastBtn',
+        HISTORY_BTN: 'historyBtn',
       },
       LANGUAGES: {
         ITALIAN: 'italian',
@@ -52,12 +54,16 @@ class LinguaPush {
       lastNotification: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION),
       lastNotificationOriginal: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ORIGINAL),
       lastNotificationEnglish: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ENGLISH),
-      refreshLastBtn: document.getElementById(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_REFRESH_BTN)
+      refreshLastBtn: document.getElementById(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_REFRESH_BTN),
+      historyBtn: document.getElementById(this.CONSTANTS.SELECTORS.HISTORY_BTN)
     };
 
     // State
     this.reg = null; // service worker registration cache
     this.waitingForFreshNotification = false; // flag for "Get One Now" clicks
+
+    // Initialize history module
+    this.history = new NotificationHistory(this);
 
     this.init();
   }
@@ -100,6 +106,11 @@ class LinguaPush {
       this.elements.refreshLastBtn.addEventListener("click", () => this.handleRefreshLastNotification());
     }
 
+    // History button
+    if (this.elements.historyBtn) {
+      this.elements.historyBtn.addEventListener("click", () => this.history.handleShowHistory());
+    }
+
     // Icons initialization
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
@@ -137,6 +148,7 @@ class LinguaPush {
         this.elements.subButton.disabled = false;
         this.elements.subButton.classList.add("outline");
         this.elements.sendNowButton.style.display = "flex";
+        if (this.elements.historyBtn) this.elements.historyBtn.style.display = "flex";
         if (spinner) {
           spinner.style.visibility = "visible";
           spinner.style.opacity = "1";
@@ -149,6 +161,7 @@ class LinguaPush {
         this.elements.subButton.disabled = false;
         this.elements.subButton.classList.remove("outline");
         this.elements.sendNowButton.style.display = "none";
+        if (this.elements.historyBtn) this.elements.historyBtn.style.display = "none";
         if (spinner) {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
@@ -161,6 +174,7 @@ class LinguaPush {
         this.elements.subButton.disabled = true;
         this.elements.subButton.classList.remove("outline");
         this.elements.sendNowButton.style.display = "none";
+        if (this.elements.historyBtn) this.elements.historyBtn.style.display = "none";
         if (spinner) {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
@@ -173,6 +187,7 @@ class LinguaPush {
         this.elements.subButton.disabled = true;
         this.elements.subButton.classList.remove("outline");
         this.elements.sendNowButton.style.display = "none";
+        if (this.elements.historyBtn) this.elements.historyBtn.style.display = "none";
         if (spinner) {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
