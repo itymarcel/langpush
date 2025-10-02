@@ -362,6 +362,8 @@ h1 {
   z-index: 1000;
   padding: 20px;
   box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
 }
 
 .history-modal {
@@ -385,14 +387,14 @@ h1 {
 .close-btn {
   background: none;
   border: none;
-  padding: 4px;
+  padding: 7px;
   cursor: pointer;
-  border-radius: 4px;
-  color: rgba(0, 0, 255, 1);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 1);
 }
 
 .close-btn:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 1);
 }
 
 .history-content {
@@ -423,7 +425,9 @@ h1 {
   background-color: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(10px);
   border-radius: 999px;
-  animation: history-item-appear 300ms cubic-bezier(0.420, 0.035, 0.000, 0.995) 1;
+  transform: scale(0.9);
+  opacity: 0;
+  animation: history-item-appear 300ms cubic-bezier(0.420, 0.035, 0.000, 0.995) forwards;
 }
 
 @keyframes history-item-appear {
@@ -433,6 +437,16 @@ h1 {
   } to {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes history-item-disappear {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  } to {
+    transform: scale(0.9);
+    opacity: 0;
   }
 }
 

@@ -53,22 +53,42 @@ class NotificationHistory {
     // Header
     const header = document.createElement('div');
     header.className = 'history-header';
-    header.innerHTML = `
-      <button class="close-btn" onclick="this.closest('.history-overlay').remove()">
-        <i data-lucide="x" class="ios-icon"></i>
-      </button>
-    `;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-btn';
+    closeBtn.innerHTML = '<i data-lucide="x" class="ios-icon"></i>';
+    closeBtn.addEventListener('click', () => this.closeHistoryWithAnimation());
+
+    header.appendChild(closeBtn);
 
     // Content
     const content = document.createElement('div');
     content.className = 'history-content';
 
     if (notifications.length === 0) {
-      content.innerHTML = '<p class="no-history">No notification history found.</p>';
+      const noHistory = document.createElement('p');
+      noHistory.className = 'no-history';
+      noHistory.textContent = 'No notification history found.';
+      noHistory.style.animationDelay = '0ms';
+      content.appendChild(noHistory);
     } else {
-      notifications.forEach(notification => {
+      // Create array of random delays for animation
+      const delays = Array.from({ length: notifications.length }, (_, i) => i * 50);
+
+      // Shuffle the delays array for random order
+      for (let i = delays.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [delays[i], delays[j]] = [delays[j], delays[i]];
+      }
+
+      notifications.forEach((notification, index) => {
         const item = document.createElement('div');
         item.className = 'history-item';
+
+        // Set randomized animation delay
+        item.style.animationDelay = `${delays[index]}ms`;
+        // Store the delay for reverse animation
+        item.dataset.originalDelay = delays[index];
 
         const sentAt = new Date(notification.sent_at).toLocaleDateString();
         const difficultyLabel = notification.difficulty === 'medium' ? 'Med' : 'Easy';
@@ -96,6 +116,14 @@ class NotificationHistory {
     // Add to DOM
     document.body.appendChild(overlay);
 
+    // Store reference for close animation
+    this.currentOverlay = overlay;
+
+    // Fade in background
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+    });
+
     // Initialize icons for the close button
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
@@ -104,8 +132,46 @@ class NotificationHistory {
     // Close on overlay click
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
-        overlay.remove();
+        this.closeHistoryWithAnimation();
       }
     });
+  }
+
+  /**
+   * Close history overlay with reverse animation
+   */
+  closeHistoryWithAnimation() {
+    if (!this.currentOverlay) return;
+
+    const overlay = this.currentOverlay;
+    const historyItems = overlay.querySelectorAll('.history-item, .no-history');
+
+    // Get original delays and create reverse order
+    const itemsWithDelays = Array.from(historyItems).map(item => ({
+      element: item,
+      originalDelay: parseInt(item.dataset.originalDelay || '0')
+    }));
+
+    // Sort by original delay (highest first for reverse effect)
+    itemsWithDelays.sort((a, b) => b.originalDelay - a.originalDelay);
+
+    // Apply reverse animation with staggered timing
+    itemsWithDelays.forEach((item, index) => {
+      setTimeout(() => {
+        item.element.style.animation = 'history-item-disappear 200ms cubic-bezier(0.420, 0.035, 0.000, 0.995) forwards';
+      }, index * 20); // Faster close timing
+    });
+
+    // Fade out background after items start disappearing
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+    }, 100);
+
+    // Remove overlay after all animations complete
+    const totalAnimationTime = (itemsWithDelays.length * 30) + 300;
+    setTimeout(() => {
+      overlay.remove();
+      this.currentOverlay = null;
+    }, totalAnimationTime);
   }
 }
