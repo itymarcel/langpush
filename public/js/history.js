@@ -65,6 +65,8 @@ class NotificationHistory {
     const content = document.createElement('div');
     content.className = 'history-content';
 
+    let maxDelay = 0;
+
     if (notifications.length === 0) {
       const noHistory = document.createElement('p');
       noHistory.className = 'no-history';
@@ -80,6 +82,9 @@ class NotificationHistory {
         const j = Math.floor(Math.random() * (i + 1));
         [delays[i], delays[j]] = [delays[j], delays[i]];
       }
+
+      // Find the maximum delay
+      maxDelay = Math.max(...delays);
 
       notifications.forEach((notification, index) => {
         const item = document.createElement('div');
@@ -118,8 +123,9 @@ class NotificationHistory {
     // Add to DOM
     document.body.appendChild(overlay);
 
-    // Store reference for close animation
+    // Store reference for close animation and max delay
     this.currentOverlay = overlay;
+    this.maxAnimationDelay = maxDelay;
 
     // Fade in background
     requestAnimationFrame(() => {
@@ -216,7 +222,7 @@ class NotificationHistory {
    * Apply highlight effect to a specific item
    */
   highlightItem(targetItem) {
-    // Add highlight class
+    // Add highlight class with border
     targetItem.classList.add('highlighted');
 
     // Scroll to the item if needed
@@ -225,13 +231,9 @@ class NotificationHistory {
       block: 'center'
     });
 
-    // Pulse animation
-    targetItem.style.animation = 'highlight-pulse 1.5s ease-in-out 3';
-
-    // Remove highlight after animation
+    // Remove highlight after 3 seconds
     setTimeout(() => {
       targetItem.classList.remove('highlighted');
-      targetItem.style.animation = '';
-    }, 4500);
+    }, 5000);
   }
 }

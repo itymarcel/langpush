@@ -114,6 +114,7 @@ class LinguaPush {
       this.elements.historyBtn.addEventListener("click", () => this.history.handleShowHistory());
     }
 
+
     // Icons initialization
     document.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
@@ -133,6 +134,18 @@ class LinguaPush {
         console.log('App: Received SW message:', event.data);
         if (event.data.type === 'NOTIFICATION_CLICK' && event.data.sentAt) {
           console.log('App: Processing notification click for timestamp:', event.data.sentAt);
+          this.handleNotificationNavigation(event.data.sentAt);
+        }
+      });
+    }
+
+    // BroadcastChannel listener for notification clicks (more reliable for background apps)
+    if ('BroadcastChannel' in window) {
+      this.notificationChannel = new BroadcastChannel('notification-click');
+      this.notificationChannel.addEventListener('message', (event) => {
+        console.log('App: Received broadcast message:', event.data);
+        if (event.data.type === 'NOTIFICATION_CLICK' && event.data.sentAt) {
+          console.log('App: Processing notification click via broadcast for timestamp:', event.data.sentAt);
           this.handleNotificationNavigation(event.data.sentAt);
         }
       });
@@ -672,6 +685,7 @@ class LinguaPush {
     }
   }
 
+
   /**
    * Handle Send One Now button click
    */
@@ -980,6 +994,7 @@ class LinguaPush {
       console.error('Failed to navigate to notification:', error);
     }
   }
+
 }
 
 // Initialize the application when the DOM is ready
