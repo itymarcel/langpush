@@ -202,13 +202,12 @@ class LinguaPush {
         if (event.data.type === 'NOTIFICATION_CLICK' && event.data.sentAt) {
           console.log('App: Processing notification click via broadcast for timestamp:', event.data.sentAt);
 
-          // Store the pending navigation for when app becomes visible
-          this.pendingNotificationTimestamp = event.data.sentAt;
-
-          // If app is currently visible, handle immediately
-          if (document.visibilityState === 'visible') {
+          // If app is currently visible and focused, handle immediately
+          if (document.visibilityState === 'visible' && document.hasFocus()) {
             this.handleNotificationNavigation(event.data.sentAt);
-            this.pendingNotificationTimestamp = null;
+          } else {
+            // Store the pending navigation for when app becomes visible/focused
+            this.pendingNotificationTimestamp = event.data.sentAt;
           }
         }
       });
@@ -1045,9 +1044,6 @@ class LinguaPush {
   async handleNotificationNavigation(sentAtTimestamp) {
     console.log('App: handleNotificationNavigation called with:', sentAtTimestamp);
     try {
-      // Wait a moment for the app to fully stabilize
-      await new Promise(resolve => setTimeout(resolve, 800));
-
       console.log('App: Opening history...');
       // Open history and highlight the specific notification
       await this.history.handleShowHistory();
@@ -1056,7 +1052,7 @@ class LinguaPush {
       setTimeout(() => {
         console.log('App: Highlighting notification...');
         this.history.highlightNotification(sentAtTimestamp);
-      }, 600);
+      }, 400);
 
     } catch (error) {
       console.error('Failed to navigate to notification:', error);
