@@ -9,9 +9,32 @@ class NotificationHistory {
   }
 
   /**
+   * Show history button loading state
+   */
+  setHistoryButtonLoading(loading = true) {
+    const historyBtn = document.getElementById('historyBtn');
+    if (!historyBtn) return;
+
+    const normalState = historyBtn.querySelector('.history-normal-state');
+    const loadingState = historyBtn.querySelector('.history-loading-state');
+
+    if (loading) {
+      normalState.style.display = 'none';
+      loadingState.style.display = 'flex';
+      historyBtn.disabled = true;
+    } else {
+      normalState.style.display = 'flex';
+      loadingState.style.display = 'none';
+      historyBtn.disabled = false;
+    }
+  }
+
+  /**
    * Handle show history button click
    */
   async handleShowHistory() {
+    this.setHistoryButtonLoading(true);
+
     try {
       const serviceWorker = await this.app.readyServiceWorker();
       if (!serviceWorker) return;
@@ -30,6 +53,8 @@ class NotificationHistory {
     } catch (error) {
       console.error("Failed to load history:", error);
       alert("Failed to load notification history.");
+    } finally {
+      this.setHistoryButtonLoading(false);
     }
   }
 

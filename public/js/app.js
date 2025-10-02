@@ -1045,18 +1045,18 @@ class LinguaPush {
   async handleNotificationNavigation(sentAtTimestamp) {
     console.log('App: handleNotificationNavigation called with:', sentAtTimestamp);
     try {
-      // Wait a moment for the app to fully load
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait a moment for the app to fully stabilize
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       console.log('App: Opening history...');
       // Open history and highlight the specific notification
       await this.history.handleShowHistory();
 
-      // Wait for history to open, then highlight
+      // Wait for history items to appear, then highlight
       setTimeout(() => {
         console.log('App: Highlighting notification...');
         this.history.highlightNotification(sentAtTimestamp);
-      }, 300);
+      }, 600);
 
     } catch (error) {
       console.error('Failed to navigate to notification:', error);
