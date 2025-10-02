@@ -19,7 +19,7 @@ class NotificationHistory {
       const subscription = await serviceWorker.pushManager.getSubscription();
       if (!subscription) return;
 
-      const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.NOTIFICATIONS}?endpoint=${encodeURIComponent(subscription.endpoint)}&limit=10`);
+      const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.NOTIFICATIONS}?endpoint=${encodeURIComponent(subscription.endpoint)}&limit=5`);
       const data = await response.json();
 
       if (data.ok) {
