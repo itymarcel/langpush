@@ -36,7 +36,7 @@ class NotificationHistory {
     this.setHistoryButtonLoading(true);
 
     try {
-      const serviceWorker = await this.app.readyServiceWorker();
+      const serviceWorker = await this.app.subscriptionManager.readyServiceWorker();
       if (!serviceWorker) return;
 
       const subscription = await serviceWorker.pushManager.getSubscription();
@@ -131,7 +131,7 @@ class NotificationHistory {
             <div class="history-english">${notification.phrase_english}</div>
             <div class="history-original">${notification.phrase_original}</div>
             <div class="history-meta">
-              <span class="history-language">${this.app.getLanguageDisplayName(notification.language)}</span>
+              <span class="history-language">${Utils.getLanguageDisplayName(notification.language)}</span>
               <span class="history-difficulty">${difficultyLabel}</span>
               <span class="history-date">${sentAt}</span>
             </div>
