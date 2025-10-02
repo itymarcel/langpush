@@ -430,6 +430,10 @@ h1 {
   animation: history-item-appear 300ms cubic-bezier(0.420, 0.035, 0.000, 0.995) forwards;
 }
 
+.history-item.highlighted {
+  border: 2px solid rgba(0, 0, 255, 0.5);
+}
+
 @keyframes history-item-appear {
   from {
     transform: scale(0.9);
@@ -447,6 +451,17 @@ h1 {
   } to {
     transform: scale(0.9);
     opacity: 0;
+  }
+}
+
+@keyframes highlight-pulse {
+  0%, 100% {
+    background-color: rgba(0, 0, 0, 0.85);
+    transform: scale(1);
+  }
+  50% {
+    background-color: rgba(0, 0, 255, 0.3);
+    transform: scale(1.05);
   }
 }
 

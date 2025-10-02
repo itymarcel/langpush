@@ -40,25 +40,33 @@ self.addEventListener('notificationclick', e => {
   }
 
   e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then(clientList => {
-        // Check if app is already open
-        for (const client of clientList) {
-          if (client.url.includes(self.location.origin)) {
-            // App is open, focus and send message
-            client.focus();
-            if (sentAt) {
-              client.postMessage({
-                type: 'NOTIFICATION_CLICK',
-                sentAt: sentAt
-              });
-            }
-            return;
-          }
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then(clientList => {
+      // Filter for clients that match our origin
+      const appClients = clientList.filter(client =>
+        client.url.includes(self.location.origin)
+      );
+
+      if (appClients.length > 0) {
+        // App is open (foreground or background), focus first client and send message
+        const targetClient = appClients[0];
+
+        // Always send message first, then focus
+        if (sentAt) {
+          targetClient.postMessage({
+            type: 'NOTIFICATION_CLICK',
+            sentAt: sentAt
+          });
         }
 
+        // Focus the client (this will bring it to foreground)
+        return targetClient.focus();
+      } else {
         // App is not open, open new window with timestamp
         return clients.openWindow(urlToOpen);
-      })
+      }
+    })
   );
 });
