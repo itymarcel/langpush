@@ -44,16 +44,23 @@ self.addEventListener('notificationclick', e => {
       type: 'window',
       includeUncontrolled: true
     }).then(clientList => {
-      // Filter for clients that match our origin
-      const appClients = clientList.filter(client =>
-        client.url.includes(self.location.origin)
-      );
+      console.log('SW: Found clients:', clientList.length);
 
-      if (appClients.length > 0) {
-        // App is open (foreground or background), focus first client and send message
-        const targetClient = appClients[0];
+      // Look for any client from our origin
+      let targetClient = null;
 
-        // Always send message first, then focus
+      for (const client of clientList) {
+        console.log('SW: Checking client:', client.url, 'visible:', client.visibilityState);
+        if (client.url.includes(self.location.origin)) {
+          targetClient = client;
+          break;
+        }
+      }
+
+      if (targetClient) {
+        console.log('SW: Found target client, sending message and focusing');
+
+        // Send message to the client
         if (sentAt) {
           targetClient.postMessage({
             type: 'NOTIFICATION_CLICK',
@@ -61,12 +68,19 @@ self.addEventListener('notificationclick', e => {
           });
         }
 
-        // Focus the client (this will bring it to foreground)
-        return targetClient.focus();
+        // Focus the client to bring it to foreground
+        return targetClient.focus().catch(err => {
+          console.log('SW: Focus failed, opening new window instead:', err);
+          return clients.openWindow(urlToOpen);
+        });
       } else {
-        // App is not open, open new window with timestamp
+        console.log('SW: No client found, opening new window');
+        // No client found, open new window
         return clients.openWindow(urlToOpen);
       }
+    }).catch(err => {
+      console.error('SW: Error in notification click handler:', err);
+      return clients.openWindow(urlToOpen);
     })
   );
 });

@@ -130,7 +130,9 @@ class LinguaPush {
     // Service worker message listener for notification clicks
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
+        console.log('App: Received SW message:', event.data);
         if (event.data.type === 'NOTIFICATION_CLICK' && event.data.sentAt) {
+          console.log('App: Processing notification click for timestamp:', event.data.sentAt);
           this.handleNotificationNavigation(event.data.sentAt);
         }
       });
@@ -959,15 +961,18 @@ class LinguaPush {
    * Handle navigation from notification click
    */
   async handleNotificationNavigation(sentAtTimestamp) {
+    console.log('App: handleNotificationNavigation called with:', sentAtTimestamp);
     try {
       // Wait a moment for the app to fully load
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      console.log('App: Opening history...');
       // Open history and highlight the specific notification
       await this.history.handleShowHistory();
 
       // Wait for history to open, then highlight
       setTimeout(() => {
+        console.log('App: Highlighting notification...');
         this.history.highlightNotification(sentAtTimestamp);
       }, 300);
 

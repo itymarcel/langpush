@@ -183,12 +183,39 @@ class NotificationHistory {
   highlightNotification(sentAtTimestamp) {
     if (!this.currentOverlay) return;
 
+    console.log('Looking for notification with timestamp:', sentAtTimestamp);
+
+    // Get all history items to debug
+    const allItems = this.currentOverlay.querySelectorAll('.history-item');
+    console.log('Available timestamps:', Array.from(allItems).map(item => item.dataset.sentAt));
+
     const targetItem = this.currentOverlay.querySelector(`[data-sent-at="${sentAtTimestamp}"]`);
     if (!targetItem) {
       console.warn(`Notification with timestamp ${sentAtTimestamp} not found in current history`);
+
+      // Try to find a close match (in case of timestamp format differences)
+      const approximateMatch = Array.from(allItems).find(item => {
+        const itemTimestamp = item.dataset.sentAt;
+        // Check if timestamps are within 10 seconds of each other
+        const timeDiff = Math.abs(new Date(itemTimestamp).getTime() - new Date(sentAtTimestamp).getTime());
+        return timeDiff < 10000; // 10 seconds tolerance
+      });
+
+      if (approximateMatch) {
+        console.log('Found approximate match, highlighting it');
+        this.highlightItem(approximateMatch);
+      }
       return;
     }
 
+    console.log('Found exact match, highlighting');
+    this.highlightItem(targetItem);
+  }
+
+  /**
+   * Apply highlight effect to a specific item
+   */
+  highlightItem(targetItem) {
     // Add highlight class
     targetItem.classList.add('highlighted');
 
