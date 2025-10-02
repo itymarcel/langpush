@@ -89,6 +89,8 @@ class NotificationHistory {
         item.style.animationDelay = `${delays[index]}ms`;
         // Store the delay for reverse animation
         item.dataset.originalDelay = delays[index];
+        // Store timestamp for highlighting
+        item.dataset.sentAt = notification.sent_at;
 
         const sentAt = new Date(notification.sent_at).toLocaleDateString();
         const difficultyLabel = notification.difficulty === 'medium' ? 'Med' : 'Easy';
@@ -173,5 +175,36 @@ class NotificationHistory {
       overlay.remove();
       this.currentOverlay = null;
     }, totalAnimationTime);
+  }
+
+  /**
+   * Highlight a specific notification by timestamp
+   */
+  highlightNotification(sentAtTimestamp) {
+    if (!this.currentOverlay) return;
+
+    const targetItem = this.currentOverlay.querySelector(`[data-sent-at="${sentAtTimestamp}"]`);
+    if (!targetItem) {
+      console.warn(`Notification with timestamp ${sentAtTimestamp} not found in current history`);
+      return;
+    }
+
+    // Add highlight class
+    targetItem.classList.add('highlighted');
+
+    // Scroll to the item if needed
+    targetItem.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+
+    // Pulse animation
+    targetItem.style.animation = 'highlight-pulse 1.5s ease-in-out 3';
+
+    // Remove highlight after animation
+    setTimeout(() => {
+      targetItem.classList.remove('highlighted');
+      targetItem.style.animation = '';
+    }, 4500);
   }
 }

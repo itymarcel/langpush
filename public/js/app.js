@@ -79,6 +79,7 @@ class LinguaPush {
     this.initializeChickenPopover();
     this.loadLastNotification();
     this.checkCooldownOnLoad();
+    this.checkForNotificationParameter();
   }
 
   /**
@@ -86,6 +87,8 @@ class LinguaPush {
    */
   setupEventListeners() {
     // Main subscription button
+
+    
     this.elements.subButton.addEventListener("click", () => this.handleSubscriptionToggle());
 
     // Send Now button
@@ -123,6 +126,15 @@ class LinguaPush {
         this.loadLastNotification();
       }
     });
+
+    // Service worker message listener for notification clicks
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data.type === 'NOTIFICATION_CLICK' && event.data.sentAt) {
+          this.handleNotificationNavigation(event.data.sentAt);
+        }
+      });
+    }
   }
 
   /**
@@ -924,6 +936,43 @@ class LinguaPush {
           location.reload();
         }
       };
+    }
+  }
+
+  /**
+   * Check for notification parameter in URL on page load
+   */
+  checkForNotificationParameter() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const notificationTimestamp = urlParams.get('notification');
+
+    if (notificationTimestamp) {
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      // Handle the notification navigation
+      this.handleNotificationNavigation(notificationTimestamp);
+    }
+  }
+
+  /**
+   * Handle navigation from notification click
+   */
+  async handleNotificationNavigation(sentAtTimestamp) {
+    try {
+      // Wait a moment for the app to fully load
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Open history and highlight the specific notification
+      await this.history.handleShowHistory();
+
+      // Wait for history to open, then highlight
+      setTimeout(() => {
+        this.history.highlightNotification(sentAtTimestamp);
+      }, 300);
+
+    } catch (error) {
+      console.error('Failed to navigate to notification:', error);
     }
   }
 }

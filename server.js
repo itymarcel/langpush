@@ -313,7 +313,7 @@ app.patch("/subscribe/language", async (req, res) => {
 });
 
 // Helper function to create notification payload based on language and phrase
-function createNotificationPayload(language, phrase) {
+function createNotificationPayload(language, phrase, includeClickTracking = true) {
   const languageConfig = {
     spanish: {
       title: 'New Spanish Phrase',
@@ -338,12 +338,21 @@ function createNotificationPayload(language, phrase) {
   };
 
   const config = languageConfig[language] || languageConfig.italian;
-  return JSON.stringify({
+  const payload = {
     title: `Translate to ${config.flag} ${language.charAt(0).toUpperCase() + language.slice(1)}`,
     body: `${phrase.en}`,
     icon: '/icon-192.png',
     badge: '/icon-192.png'
-  });
+  };
+
+  // Add timestamp for click tracking (for new notifications)
+  if (includeClickTracking) {
+    payload.data = {
+      sentAt: new Date().toISOString()
+    };
+  }
+
+  return JSON.stringify(payload);
 }
 
 // Helper function to get the original phrase text for database storage
