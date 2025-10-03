@@ -82,7 +82,6 @@ class NotificationHistory {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'close-btn';
     closeBtn.innerHTML = '<i data-lucide="x" class="ios-icon"></i>';
-    closeBtn.addEventListener('click', () => this.closeHistoryWithAnimation());
 
     header.appendChild(closeBtn);
 
@@ -162,9 +161,14 @@ class NotificationHistory {
       lucide.createIcons();
     }
 
-    // Close on overlay click
+    // Close on overlay click (anywhere except history items)
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
+      // Check if the clicked element is a history item or its child
+      const clickedHistoryItem = e.target.closest('.history-item');
+      const clickedCloseBtn = e.target.closest('.close-btn');
+
+      // Close if clicked outside history items OR on the close button
+      if (!clickedHistoryItem || clickedCloseBtn) {
         this.closeHistoryWithAnimation();
       }
     });
