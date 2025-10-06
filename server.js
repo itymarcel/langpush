@@ -147,7 +147,8 @@ if (process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID && process.env.APNS_KEY_
 
     try {
       apnProvider = new apn.Provider(apnOptions);
-      console.log('✅ APNs provider initialized successfully');
+      const environment = process.env.APNS_PRODUCTION === 'true' ? 'production' : 'sandbox';
+      console.log(`✅ APNs provider initialized successfully (${environment} environment)`);
     } catch (error) {
       console.error('❌ APNs provider initialization failed:', error);
     }

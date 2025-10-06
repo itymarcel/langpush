@@ -41,13 +41,15 @@ class CapacitorManager {
 
     // Called when the push notification registration is successful
     this.pushNotifications.addListener('registration', (token) => {
-      console.log('Push registration success, token: ' + token.value);
+      console.log('🎉 [Capacitor] REGISTRATION SUCCESS CALLBACK!');
+      console.log('🔑 [Capacitor] Token received:', token.value);
       this.onRegistrationSuccess(token.value);
     });
 
     // Called when the push notification registration fails
     this.pushNotifications.addListener('registrationError', (error) => {
-      console.error('Push registration error: ', error);
+      console.error('❌ [Capacitor] REGISTRATION ERROR CALLBACK!');
+      console.error('❌ [Capacitor] Error details:', JSON.stringify(error));
       this.onRegistrationError(error);
     });
 
@@ -106,6 +108,12 @@ class CapacitorManager {
     console.log('📱 [Capacitor] Calling pushNotifications.register()...');
     await this.pushNotifications.register();
     console.log('✅ [Capacitor] Register call completed, waiting for callback...');
+
+    // Set a timeout to catch if no callback is received
+    setTimeout(() => {
+      console.warn('⚠️ [Capacitor] No registration callback received after 10 seconds!');
+      console.warn('⚠️ [Capacitor] This usually means APNs environment mismatch or network issues');
+    }, 10000);
   }
 
   async onRegistrationSuccess(deviceToken) {
