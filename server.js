@@ -142,7 +142,7 @@ if (process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID && process.env.APNS_KEY_
         keyId: process.env.APNS_KEY_ID,
         teamId: process.env.APNS_TEAM_ID
       },
-      production: process.env.APNS_FORCE_SANDBOX === 'true' ? false : (process.env.NODE_ENV === 'production') // Use sandbox for development
+      production: process.env.APNS_PRODUCTION === 'true' // false = sandbox (dev builds), true = production (TestFlight/App Store)
     };
 
     try {
