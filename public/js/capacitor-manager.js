@@ -190,10 +190,35 @@ class CapacitorManager {
   }
 
   async checkExistingSubscription() {
-    // For development, let's just return false for now
-    // This will show the Subscribe button instead of assuming subscribed
-    console.log('Checking iOS subscription status...');
-    return false;
+    console.log('🔍 [Capacitor] Checking iOS subscription status in database...');
+
+    try {
+      if (!this.pushNotifications) {
+        console.log('ℹ️ [Capacitor] No push notifications available');
+        return false;
+      }
+
+      // Best practice: Always get fresh device token from system
+      console.log('📱 [Capacitor] Requesting fresh device token for subscription check...');
+
+      // First check if we have permission
+      const permStatus = await this.pushNotifications.checkPermissions();
+      if (permStatus.receive !== 'granted') {
+        console.log('ℹ️ [Capacitor] No permission granted, showing Subscribe button');
+        return false;
+      }
+
+      // Register to get current device token
+      await this.pushNotifications.register();
+
+      // We'll get the token in the registration callback
+      // For now, return false as we don't have the token yet
+      // TODO: Implement proper token-based checking in registration callback
+      return false;
+    } catch (error) {
+      console.error('❌ [Capacitor] Error checking subscription:', error);
+      return false;
+    }
   }
 
   async unsubscribe() {

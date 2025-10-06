@@ -366,6 +366,9 @@ app.patch("/subscribe/language", async (req, res) => {
 
 // 5) iOS token registration endpoint for Capacitor app
 app.post("/subscribe/ios", async (req, res) => {
+  console.log('📱 [iOS] Subscription request received');
+  console.log('📱 [iOS] Request body:', JSON.stringify(req.body, null, 2));
+
   const { deviceToken, language = 'italian', difficulty = 'easy' } = req.body;
 
   if (!deviceToken) {
