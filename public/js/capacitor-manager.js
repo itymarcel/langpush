@@ -20,8 +20,13 @@ class CapacitorManager {
       if (typeof window.Capacitor !== 'undefined') {
         console.log('✅ Capacitor detected');
 
-        // For now, let's not try to access plugins immediately
-        // We'll check them when needed
+        // Initialize push notifications plugin
+        const { PushNotifications } = Capacitor.Plugins;
+        this.pushNotifications = PushNotifications;
+
+        // Set up push notification listeners
+        this.setupPushListeners();
+
         console.log('✅ Capacitor initialized successfully');
       } else {
         console.log('⚠️ Capacitor not available - running in browser mode');
