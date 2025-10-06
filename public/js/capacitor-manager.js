@@ -65,36 +65,61 @@ class CapacitorManager {
   }
 
   async requestPermissions() {
+    console.log('🔍 [Capacitor] Starting requestPermissions()');
+
     if (!this.pushNotifications) {
+      console.error('❌ [Capacitor] pushNotifications is null or undefined');
       throw new Error('Push notifications not available in iOS Simulator');
     }
 
+    console.log('✅ [Capacitor] pushNotifications plugin available');
+    console.log('🔍 [Capacitor] Checking current permissions...');
+
     let permStatus = await this.pushNotifications.checkPermissions();
+    console.log('📋 [Capacitor] Current permission status:', JSON.stringify(permStatus));
 
     if (permStatus.receive === 'prompt') {
+      console.log('🔔 [Capacitor] Requesting permissions from user...');
       permStatus = await this.pushNotifications.requestPermissions();
+      console.log('📋 [Capacitor] Permission request result:', JSON.stringify(permStatus));
+    } else {
+      console.log('ℹ️ [Capacitor] No permission request needed, status:', permStatus.receive);
     }
 
     if (permStatus.receive !== 'granted') {
+      console.error('❌ [Capacitor] Permissions denied, status:', permStatus.receive);
       throw new Error('Push notification permissions denied');
     }
 
+    console.log('✅ [Capacitor] Permissions granted successfully');
     return permStatus;
   }
 
   async registerForPush() {
+    console.log('🔍 [Capacitor] Starting registerForPush()');
+
     if (!this.pushNotifications) {
+      console.error('❌ [Capacitor] pushNotifications not initialized');
       throw new Error('Capacitor not initialized');
     }
 
+    console.log('📱 [Capacitor] Calling pushNotifications.register()...');
     await this.pushNotifications.register();
+    console.log('✅ [Capacitor] Register call completed, waiting for callback...');
   }
 
   async onRegistrationSuccess(deviceToken) {
+    console.log('🎉 [Capacitor] Registration success callback triggered!');
+    console.log('🔑 [Capacitor] Device token received:', deviceToken);
+
     try {
       // Get current language and difficulty from UI
       const language = this.app.elements.languageSelect.value;
       const difficulty = this.app.elements.difficultySelect.value;
+      console.log('🌍 [Capacitor] Selected language:', language, 'difficulty:', difficulty);
+
+      console.log('🌐 [Capacitor] Sending registration to server...');
+      console.log('📡 [Capacitor] Endpoint:', this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_IOS);
 
       // Register the device token with our server
       const response = await fetch(this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_IOS, {
@@ -109,24 +134,28 @@ class CapacitorManager {
         })
       });
 
+      console.log('📡 [Capacitor] Server response status:', response.status);
       const data = await response.json();
+      console.log('📡 [Capacitor] Server response data:', JSON.stringify(data));
 
       if (data.ok) {
-        console.log('iOS device registered successfully');
+        console.log('✅ [Capacitor] iOS device registered successfully');
         // Update UI to show subscribed state
         this.app.uiController.setButtonState('unsub');
         this.app.uiController.showSubscribeInfo();
       } else {
+        console.error('❌ [Capacitor] Server registration failed:', data.error);
         throw new Error(data.error || 'Failed to register device');
       }
     } catch (error) {
-      console.error('Failed to register device token:', error);
+      console.error('❌ [Capacitor] Failed to register device token:', error);
       this.app.uiController.setButtonState('sub');
     }
   }
 
   onRegistrationError(error) {
-    console.error('Push registration failed:', error);
+    console.error('❌ [Capacitor] Push registration failed:', error);
+    console.error('❌ [Capacitor] Error details:', JSON.stringify(error));
     this.app.uiController.setButtonState('sub');
   }
 
