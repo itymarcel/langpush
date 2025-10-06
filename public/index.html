@@ -27,7 +27,12 @@
   <div id="main-container">
     <div class="headline-container">
       <h1 id="chickenBtn">
-        <i data-lucide='languages' class='ios-icon'></i> LANGPUSH
+        <svg width="20" height="20" viewBox="0 0 114 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M106.573 35.674C106.573 20.0736 93.9263 7.42698 78.3259 7.42695C62.7255 7.42695 50.0788 20.0736 50.0788 35.674C50.0788 51.2744 62.7255 63.9211 78.3259 63.9211V71.3481L77.8648 71.345C58.5286 71.1001 42.8997 55.4713 42.6548 36.1351L42.6519 35.674C42.6519 15.9718 58.6237 0 78.3259 0L78.787 0.00290115C98.2766 0.249794 114 16.1258 114 35.674L113.997 36.1351C113.75 55.6248 97.8741 71.348 78.3259 71.3481V63.9211C93.9263 63.9211 106.573 51.2744 106.573 35.674Z" fill="#0000FF"/>
+          <path d="M63.9211 35.674C63.9211 20.0736 51.2744 7.42698 35.674 7.42695C20.0736 7.42695 7.42695 20.0736 7.42695 35.674C7.42698 51.2744 20.0736 63.9211 35.674 63.9211V71.3481L35.213 71.345C15.8767 71.1001 0.24785 55.4713 0.00290115 36.1351L0 35.674C0 15.9718 15.9718 0 35.674 0L36.1351 0.00290115C55.6248 0.249794 71.3481 16.1258 71.3481 35.674L71.345 36.1351C71.0981 55.6248 55.2223 71.348 35.674 71.3481V63.9211C51.2744 63.9211 63.9211 51.2744 63.9211 35.674Z" fill="#0000FF"/>
+        </svg>
+
+        LANGPUSH
       </h1>
       <!-- <div id="github">
         <a href='https://github.com/itymarcel/langpush' target='_blank'>
@@ -45,7 +50,7 @@
       </div>
     </div>
 
-    <div id="iosThirdpartyTip">
+    <div id="iosThirdpartyTip" style="display: none;">
       <div>You need to open this website in 🧭 Safari so you can add it to your homescreen.</div>
       <div id="copyLinkBtn" onclick="copyLink()">
         <i data-lucide="copy" class="ios-icon"></i> Copy link
@@ -154,8 +159,10 @@
     </div>
   </div>
 
+  <script src="/js/config.js"></script>
   <script src="/js/popover.js"></script>
   <script src="/js/utils.js"></script>
+  <script src="/js/capacitor-manager.js"></script>
   <script src="/js/subscription-manager.js"></script>
   <script src="/js/ui-controller.js"></script>
   <script src="/js/preferences-manager.js"></script>

@@ -13,6 +13,11 @@ class SubscriptionManager {
    * Initialize service worker
    */
   async readyServiceWorker() {
+    // If running in Capacitor, we don't need service workers
+    if (this.app.config.isCapacitor) {
+      return { pushManager: null }; // Return mock object for Capacitor
+    }
+
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       this.app.uiController.setButtonState("unsupported");
       return null;
@@ -76,6 +81,24 @@ class SubscriptionManager {
   async syncButton() {
     this.app.uiController.setButtonState("loading");
 
+    // Handle Capacitor (iOS app) differently
+    if (this.app.config.isCapacitor) {
+      try {
+        const hasPermission = await this.app.capacitorManager.checkExistingSubscription();
+        // Note: "sub" shows unsubscribe button (subscribed), "unsub" shows subscribe button (unsubscribed)
+        this.app.uiController.setButtonState(hasPermission ? "sub" : "unsub");
+        this.app.uiController.updateUI(hasPermission, null, null, this.app.elements.languageSelect, this.app.elements.difficultySelect);
+        return { subscription: null, existsOnServer: hasPermission, savedLanguage: null, savedDifficulty: null };
+      } catch (error) {
+        console.error('Failed to check iOS subscription:', error);
+        // Default to unsubscribed state on error
+        this.app.uiController.setButtonState("unsub");
+        this.app.uiController.updateUI(false, null, null, this.app.elements.languageSelect, this.app.elements.difficultySelect);
+        return { subscription: null, existsOnServer: false, savedLanguage: null, savedDifficulty: null };
+      }
+    }
+
+    // Handle web push (PWA)
     const serviceWorker = await this.readyServiceWorker();
     if (!serviceWorker) return;
 
@@ -83,6 +106,7 @@ class SubscriptionManager {
     const { existsOnServer, savedLanguage, savedDifficulty } = await this.getSubscriptionStatus(subscription);
 
     const isSubscribed = subscription && existsOnServer;
+    // Note: "sub" shows unsubscribe button (subscribed), "unsub" shows subscribe button (unsubscribed)
     this.app.uiController.setButtonState(isSubscribed ? "sub" : "unsub");
     this.app.uiController.updateUI(isSubscribed, savedLanguage, savedDifficulty, this.app.elements.languageSelect, this.app.elements.difficultySelect);
 
@@ -127,6 +151,12 @@ class SubscriptionManager {
    * Handle subscription toggle (subscribe/unsubscribe)
    */
   async handleSubscriptionToggle() {
+    // Check if we're running in Capacitor (iOS app)
+    if (this.app.config.isCapacitor) {
+      return this.handleCapacitorSubscriptionToggle();
+    }
+
+    // Handle web push (PWA)
     const serviceWorker = await this.readyServiceWorker();
     if (!serviceWorker) return;
 
@@ -137,6 +167,39 @@ class SubscriptionManager {
       await this.unsubscribe(subscription);
     } else {
       await this.subscribe(serviceWorker);
+    }
+  }
+
+  async handleCapacitorSubscriptionToggle() {
+    try {
+      this.app.uiController.setButtonState("loading");
+
+      // Check current subscription state
+      const hasPermission = await this.app.capacitorManager.checkExistingSubscription();
+
+      if (hasPermission) {
+        // Try to unsubscribe
+        await this.app.capacitorManager.unsubscribe();
+        this.app.uiController.setButtonState("unsub");
+        this.app.uiController.hideSubscribeInfo();
+      } else {
+        // Subscribe to push notifications
+        await this.app.capacitorManager.requestPermissions();
+        await this.app.capacitorManager.registerForPush();
+        // The registration success callback will handle UI updates
+      }
+    } catch (error) {
+      console.error("Capacitor subscription toggle failed:", error);
+      // On error, show subscribe button (user is not subscribed)
+      this.app.uiController.setButtonState("unsub");
+
+      if (error.message.includes('denied')) {
+        alert("Push notifications were denied. Please enable them in Settings to receive language updates.");
+      } else if (error.message.includes('Settings app')) {
+        alert("To disable notifications, please go to Settings > Notifications > LangPush");
+      } else {
+        alert("Failed to toggle notifications. Please try again.");
+      }
     }
   }
 

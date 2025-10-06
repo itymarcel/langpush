@@ -23,6 +23,9 @@
 /* Chicken button styles */
 #chickenBtn {
   cursor:pointer;
+  display: flex;
+  gap: 2px;
+  align-items: center;
 }
 
 .chicken-button:active {

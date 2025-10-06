@@ -249,8 +249,8 @@ h1 {
 
 #language-container label {
   font-weight: 500;
-  color: rgba(0, 0, 0, 0.7);
-  font-size: 14px;
+  color: rgba(0, 0, 0, 0.3);
+  font-size: 12px;
 }
 
 #language-container .selection-container {

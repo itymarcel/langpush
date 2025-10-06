@@ -55,7 +55,26 @@ function hideMainUI() {
   if (subscribeInfo) subscribeInfo.style.display = "none";
 }
 
+function isCapacitor() {
+  return window.Capacitor !== undefined;
+}
+
 function handleIOSTips() {
+  // If running in Capacitor (native app), don't show any iOS tips
+  if (isCapacitor()) {
+    if (iosTip) iosTip.style.display = "none";
+    if (iosThirdpartyTip) iosThirdpartyTip.style.display = "none";
+    return;
+  }
+
+  // Also check for common Capacitor user agent indicators
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.includes('capacitor') || userAgent.includes('ionic') || window.webkit?.messageHandlers?.capacitor) {
+    if (iosTip) iosTip.style.display = "none";
+    if (iosThirdpartyTip) iosThirdpartyTip.style.display = "none";
+    return;
+  }
+
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 
   // Hide both tips by default
@@ -77,7 +96,8 @@ function handleIOSTips() {
 }
 
 // Run iOS tip logic when DOM is loaded
-if (isIOS()) {
+// Only show iOS tips if NOT running in Capacitor and IS running on iOS
+if (isIOS() && !isCapacitor()) {
   document.addEventListener('DOMContentLoaded', handleIOSTips);
 }
 

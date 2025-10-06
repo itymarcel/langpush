@@ -4,20 +4,25 @@
 
 class LinguaPush {
   constructor() {
+    // Wait for config to be loaded
+    this.config = window.AppConfig;
+
     // Constants
     this.CONSTANTS = {
       ENDPOINTS: {
-        VAPID_KEY: '/vapidPublicKey',
-        ADMIN_KEY: '/admin-key',
-        SUBSCRIBE: '/subscribe',
-        SUBSCRIBE_EXISTS: '/subscribe/exists',
-        SUBSCRIBE_DIFFICULTY: '/subscribe/difficulty',
-        SUBSCRIBE_LANGUAGE: '/subscribe/language',
-        ADMIN_SUBS: '/admin/subs',
-        ADMIN_SEND_NOW: '/admin/send-now',
-        LAST_NOTIFICATION: '/last-notification',
-        NOTIFICATIONS: '/notifications',
-        LIVE_RELOAD: '/live-reload'
+        VAPID_KEY: this.config.getEndpointUrl('/vapidPublicKey'),
+        ADMIN_KEY: this.config.getEndpointUrl('/admin-key'),
+        SUBSCRIBE: this.config.getEndpointUrl('/subscribe'),
+        SUBSCRIBE_EXISTS: this.config.getEndpointUrl('/subscribe/exists'),
+        SUBSCRIBE_DIFFICULTY: this.config.getEndpointUrl('/subscribe/difficulty'),
+        SUBSCRIBE_LANGUAGE: this.config.getEndpointUrl('/subscribe/language'),
+        SUBSCRIBE_IOS: this.config.getEndpointUrl('/subscribe/ios'),
+        SUBSCRIBE_IOS_EXISTS: this.config.getEndpointUrl('/subscribe/ios/exists'),
+        ADMIN_SUBS: this.config.getEndpointUrl('/admin/subs'),
+        ADMIN_SEND_NOW: this.config.getEndpointUrl('/admin/send-now'),
+        LAST_NOTIFICATION: this.config.getEndpointUrl('/last-notification'),
+        NOTIFICATIONS: this.config.getEndpointUrl('/notifications'),
+        LIVE_RELOAD: this.config.getEndpointUrl('/live-reload')
       },
       SELECTORS: {
         SUB_BUTTON: 'sub',
@@ -65,6 +70,7 @@ class LinguaPush {
     this.notificationHandler = new NotificationHandler(this);
     this.sendNowManager = new SendNowManager(this);
     this.history = new NotificationHistory(this);
+    this.capacitorManager = new CapacitorManager(this);
 
     this.init();
   }
