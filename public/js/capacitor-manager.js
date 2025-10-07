@@ -200,13 +200,8 @@ class CapacitorManager {
   onNotificationReceived(notification) {
     console.log('Notification received:', notification);
     // Handle background notification received
-    // Refresh last notification display, preserving any reveal state
-    if (this.app.sendNowManager.waitingForFreshNotification) {
-      // Don't reload - let the send now manager handle it with reveal mechanism
-      console.log('📱 [Capacitor] Skipping reload - waiting for fresh notification reveal');
-    } else {
-      this.app.sendNowManager.loadLastNotification();
-    }
+    // Refresh last notification display
+    this.app.sendNowManager.loadLastNotification();
   }
 
   onNotificationTapped(notification) {
@@ -299,7 +294,8 @@ class CapacitorManager {
           "X-Admin-Key": adminKey
         },
         body: JSON.stringify({
-          iosToken: deviceToken
+          iosToken: deviceToken,
+          appIsOpen: true  // Tell server not to send push since app is open
         })
       });
 

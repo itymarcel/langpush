@@ -769,7 +769,7 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
 });
 
 app.post("/admin/send-now", guard, async (req, res) => {
-  const { endpoint, iosToken } = req.body;
+  const { endpoint, iosToken, appIsOpen } = req.body;
 
   if (!endpoint && !iosToken) {
     return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
@@ -780,12 +780,12 @@ app.post("/admin/send-now", guard, async (req, res) => {
 
     if (iosToken) {
       // iOS token lookup
-      console.log('📱 [Send Now] Using iOS token:', iosToken);
+      console.log('📱 [Send Now] Using iOS token:', iosToken, 'appIsOpen:', appIsOpen);
       query = "SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
       params = [iosToken];
     } else {
       // Web endpoint lookup
-      console.log('🌐 [Send Now] Using web endpoint:', endpoint);
+      console.log('🌐 [Send Now] Using web endpoint:', endpoint, 'appIsOpen:', appIsOpen);
       query = "SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
       params = [endpoint];
     }
@@ -819,10 +819,32 @@ app.post("/admin/send-now", guard, async (req, res) => {
     console.log('🎲 [Send Now] Generating phrase for language:', language, 'difficulty:', difficulty);
     const phrase = randomPhraseNoRepeat(language, difficulty);
 
-    console.log('📤 [Send Now] Sending push notification...');
-    await sendPushToSubscription(row, phrase, difficulty);
+    if (appIsOpen) {
+      // App is open - skip push notification but still create database entries
+      console.log('📱 [Send Now] App is open, skipping push notification but updating database...');
 
-    console.log('✅ [Send Now] Notification sent successfully');
+      const originalText = getOriginalPhraseText(language, phrase);
+
+      // Update last notification info
+      await pool.query(
+        "UPDATE subs SET last_phrase_original = $1, last_phrase_english = $2, last_phrase_language = $3, last_notification_sent_at = CURRENT_TIMESTAMP WHERE id = $4",
+        [originalText, phrase.en, language, row.id]
+      );
+
+      // Save notification to history table
+      await pool.query(
+        "INSERT INTO notifications (subscription_id, phrase_original, phrase_english, language, difficulty) VALUES ($1, $2, $3, $4, $5)",
+        [row.id, originalText, phrase.en, language, difficulty]
+      );
+
+      console.log('✅ [Send Now] Database updated successfully (no push sent due to app being open)');
+    } else {
+      // App is not open - send push notification normally
+      console.log('📤 [Send Now] Sending push notification...');
+      await sendPushToSubscription(row, phrase, difficulty);
+      console.log('✅ [Send Now] Notification sent successfully');
+    }
+
     res.json({ ok: true, sent: 1 });
   } catch (error) {
     console.error("❌ [Send Now] Failed:", error);
