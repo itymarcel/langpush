@@ -41,3 +41,16 @@ The app requires these environment variables (see `.env` for local development):
 curl -X POST http://localhost:3000/admin/broadcast \
   -H "X-Admin-Key: local-dev-admin-key"
 ```
+
+
+### Code changes to capacitor PUSH (REQUIRED)
+```
+// MARK: - Push Notifications
+50 +      func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+51 +          NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+52 +      }
+53 +  
+54 +      func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+55 +          NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+56 +      }
+```

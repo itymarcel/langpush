@@ -160,9 +160,6 @@ class CapacitorManager {
       const difficulty = this.app.elements.difficultySelect.value;
       console.log('🌍 [Capacitor] Selected language:', language, 'difficulty:', difficulty);
 
-      console.log('🌐 [Capacitor] Sending registration to server...');
-      console.log('📡 [Capacitor] Endpoint:', this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_IOS);
-
       // Register the device token with our server
       const response = await fetch(this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_IOS, {
         method: 'POST',
@@ -176,17 +173,12 @@ class CapacitorManager {
         })
       });
 
-      console.log('📡 [Capacitor] Server response status:', response.status);
       const data = await response.json();
-      console.log('📡 [Capacitor] Server response data:', JSON.stringify(data));
 
       if (data.ok) {
-        console.log('✅ [Capacitor] iOS device registered successfully');
         // Update UI to show subscribed state
         this.app.uiController.setButtonState('sub');
-        this.app.uiController.showSubscribeInfo();
       } else {
-        console.error('❌ [Capacitor] Server registration failed:', data.error);
         throw new Error(data.error || 'Failed to register device');
       }
     } catch (error) {
