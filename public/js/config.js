@@ -13,9 +13,8 @@ class Config {
   detectProduction() {
     // Check if running on Railway or other production environment
     if (this.isCapacitor) {
-      // For Capacitor apps in development, always use local server
-      // You can set this to true when you want to test against production
-      return false; // Set to true to test against Railway in simulator
+      // For Capacitor apps, always use Railway production server
+      return true; // Always use Railway for iOS app
     } else {
       // For PWA, check the current hostname
       return window.location.hostname !== 'localhost' &&

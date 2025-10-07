@@ -54,18 +54,47 @@ class SendNowManager {
   }
 
   async handleSendNow() {
+    console.log('🔍 [SendNowManager] Starting Send Now request');
     this.setSendButtonState('sending');
 
     try {
+      // Check if running on iOS Capacitor
+      if (this.app.capacitorManager && this.app.capacitorManager.isCapacitor) {
+        console.log('📱 [SendNowManager] Using iOS Capacitor Send Now');
+        const success = await this.app.capacitorManager.sendNow();
+        if (success) {
+          console.log('✅ [SendNowManager] iOS Send Now successful');
+          this.setSendButtonState('sent');
+          this.waitingForFreshNotification = true;
+          this.loadLastNotification();
+          this.saveCooldownToCache(this.app.CONSTANTS.COOLDOWN_DURATION);
+          this.startCooldown(this.app.CONSTANTS.COOLDOWN_DURATION);
+        } else {
+          throw new Error('iOS Send Now failed');
+        }
+        return;
+      }
+
+      // Web subscription logic
+      console.log('🌐 [SendNowManager] Using web subscription Send Now');
       const serviceWorker = await this.app.subscriptionManager.readyServiceWorker();
-      if (!serviceWorker) return;
+      if (!serviceWorker) {
+        console.error('❌ [SendNowManager] No service worker available');
+        return;
+      }
 
       const subscription = await serviceWorker.pushManager.getSubscription();
-      if (!subscription) return;
+      if (!subscription) {
+        console.error('❌ [SendNowManager] No subscription available');
+        return;
+      }
 
+      console.log('🔑 [SendNowManager] Getting admin key...');
       const adminKeyResponse = await fetch(this.app.CONSTANTS.ENDPOINTS.ADMIN_KEY);
       const adminKey = await adminKeyResponse.text();
+      console.log('✅ [SendNowManager] Admin key retrieved');
 
+      console.log('📡 [SendNowManager] Sending web Send Now request...');
       const response = await fetch(this.app.CONSTANTS.ENDPOINTS.ADMIN_SEND_NOW, {
         method: "POST",
         headers: {
@@ -75,7 +104,9 @@ class SendNowManager {
         body: JSON.stringify({ endpoint: subscription.endpoint })
       });
 
+      console.log('📡 [SendNowManager] Web Send Now response status:', response.status);
       if (response.ok) {
+        console.log('✅ [SendNowManager] Web Send Now successful');
         this.setSendButtonState('sent');
 
         // Set flag to show reveal mechanism for the incoming notification
@@ -88,10 +119,12 @@ class SendNowManager {
         this.saveCooldownToCache(this.app.CONSTANTS.COOLDOWN_DURATION);
         this.startCooldown(this.app.CONSTANTS.COOLDOWN_DURATION);
       } else {
+        const errorData = await response.json();
+        console.error('❌ [SendNowManager] Web Send Now failed:', errorData);
         throw new Error('Failed to send notification');
       }
     } catch (error) {
-      console.error("Send now failed:", error);
+      console.error("❌ [SendNowManager] Send now failed:", error);
       this.setSendButtonState('failed');
       setTimeout(() => {
         this.setSendButtonState('send');
@@ -171,23 +204,51 @@ class SendNowManager {
    * Load and display last notification
    */
   async loadLastNotification() {
+    console.log('🔍 [SendNowManager] Loading last notification...');
     try {
+      // Check if running on iOS Capacitor
+      if (this.app.capacitorManager && this.app.capacitorManager.isCapacitor) {
+        console.log('📱 [SendNowManager] Using iOS Capacitor last notification');
+        const data = await this.app.capacitorManager.getLastNotification();
+
+        if (data.ok && data.hasNotification) {
+          console.log('✅ [SendNowManager] iOS last notification found');
+          this.displayLastNotification(data.original, data.english, data.language, data.sentAt);
+        } else {
+          console.log('ℹ️ [SendNowManager] No iOS last notification found');
+          this.hideLastNotification();
+        }
+        return;
+      }
+
+      // Web subscription logic
+      console.log('🌐 [SendNowManager] Using web subscription last notification');
       const serviceWorker = await this.app.subscriptionManager.readyServiceWorker();
-      if (!serviceWorker) return;
+      if (!serviceWorker) {
+        console.error('❌ [SendNowManager] No service worker available');
+        return;
+      }
 
       const subscription = await serviceWorker.pushManager.getSubscription();
-      if (!subscription) return;
+      if (!subscription) {
+        console.error('❌ [SendNowManager] No subscription available');
+        return;
+      }
 
+      console.log('📡 [SendNowManager] Fetching web last notification...');
       const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.LAST_NOTIFICATION}?endpoint=${encodeURIComponent(subscription.endpoint)}`);
       const data = await response.json();
 
+      console.log('📋 [SendNowManager] Web last notification response:', data);
       if (data.ok && data.hasNotification) {
+        console.log('✅ [SendNowManager] Web last notification found');
         this.displayLastNotification(data.original, data.english, data.language, data.sentAt);
       } else {
+        console.log('ℹ️ [SendNowManager] No web last notification found');
         this.hideLastNotification();
       }
     } catch (error) {
-      console.error("Failed to load last notification:", error);
+      console.error("❌ [SendNowManager] Failed to load last notification:", error);
       this.hideLastNotification();
     }
   }

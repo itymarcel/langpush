@@ -169,24 +169,41 @@ app.get("/admin-key", (req, res) => {
 
 // Get last notification for a subscription
 app.get("/last-notification", async (req, res) => {
-  const { endpoint } = req.query;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  const { endpoint, iosToken } = req.query;
+
+  if (!endpoint && !iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  }
 
   try {
-    const { rows } = await pool.query(
-      "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
-      [endpoint]
-    );
+    let query, params;
+
+    if (iosToken) {
+      // iOS token lookup
+      console.log('📱 [Last Notification] Using iOS token lookup:', iosToken);
+      query = "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
+      params = [iosToken];
+    } else {
+      // Web endpoint lookup
+      console.log('🌐 [Last Notification] Using web endpoint lookup:', endpoint);
+      query = "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
+      params = [endpoint];
+    }
+
+    const { rows } = await pool.query(query, params);
 
     if (rows.length === 0) {
+      console.log('❌ [Last Notification] Subscription not found');
       return res.status(404).json({ ok: false, error: "Subscription not found" });
     }
 
     const notification = rows[0];
     if (!notification.last_phrase_original) {
+      console.log('ℹ️ [Last Notification] No notification found for subscription');
       return res.json({ ok: true, hasNotification: false });
     }
 
+    console.log('✅ [Last Notification] Notification found and returned');
     res.json({
       ok: true,
       hasNotification: true,
@@ -196,7 +213,7 @@ app.get("/last-notification", async (req, res) => {
       sentAt: notification.last_notification_sent_at
     });
   } catch (error) {
-    console.error("Get last notification error:", error);
+    console.error("❌ [Last Notification] Database error:", error);
     res.status(500).json({ ok: false, error: "Database error" });
   }
 });
@@ -306,60 +323,101 @@ app.delete("/subscribe", async (req, res) => {
 
 // 3) update difficulty for existing subscription
 app.patch("/subscribe/difficulty", async (req, res) => {
-  const { endpoint, difficulty } = req.body;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  const { endpoint, iosToken, difficulty } = req.body;
+
+  if (!endpoint && !iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  }
   if (!difficulty || !['easy', 'medium'].includes(difficulty)) {
     return res.status(400).json({ ok: false, error: "Invalid difficulty. Must be 'easy' or 'medium'" });
   }
 
   try {
-    const r = await pool.query(
-      "UPDATE subs SET difficulty = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
-      [difficulty, endpoint]
-    );
+    let query, params;
+
+    if (iosToken) {
+      // iOS token lookup
+      console.log('📱 [Difficulty Update] Using iOS token:', iosToken, 'difficulty:', difficulty);
+      query = "UPDATE subs SET difficulty = $1 WHERE ios_token = $2 AND (deactivated = FALSE OR deactivated IS NULL)";
+      params = [difficulty, iosToken];
+    } else {
+      // Web endpoint lookup
+      console.log('🌐 [Difficulty Update] Using web endpoint:', endpoint, 'difficulty:', difficulty);
+      query = "UPDATE subs SET difficulty = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)";
+      params = [difficulty, endpoint];
+    }
+
+    const r = await pool.query(query, params);
 
     if (r.rowCount === 0) {
+      console.log('❌ [Difficulty Update] Active subscription not found');
       return res.status(404).json({ ok: false, error: "Active subscription not found" });
     }
 
+    console.log('✅ [Difficulty Update] Successfully updated difficulty for', r.rowCount, 'subscription(s)');
     res.json({ ok: true, updated: r.rowCount });
   } catch (error) {
-    console.error("Update difficulty error:", error);
+    console.error("❌ [Difficulty Update] Database error:", error);
     res.status(500).json({ ok: false, error: "Database error" });
   }
 });
 
 // 4) update language for existing subscription
 app.patch("/subscribe/language", async (req, res) => {
-  const { endpoint, language } = req.body;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  const { endpoint, iosToken, language } = req.body;
+
+  if (!endpoint && !iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  }
   if (!language || !['italian', 'spanish', 'french', 'japanese'].includes(language)) {
     return res.status(400).json({ ok: false, error: "Invalid language. Must be 'italian', 'spanish', 'french', or 'japanese'" });
   }
 
   try {
-    // Get current subscription data
-    const { rows: current } = await pool.query(
-      "SELECT data FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
-      [endpoint]
-    );
+    if (iosToken) {
+      // iOS token lookup - language is stored in dedicated column
+      console.log('📱 [Language Update] Using iOS token:', iosToken, 'language:', language);
+      const r = await pool.query(
+        "UPDATE subs SET language = $1 WHERE ios_token = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
+        [language, iosToken]
+      );
 
-    if (current.length === 0) {
-      return res.status(404).json({ ok: false, error: "Active subscription not found" });
+      if (r.rowCount === 0) {
+        console.log('❌ [Language Update] Active iOS subscription not found');
+        return res.status(404).json({ ok: false, error: "Active subscription not found" });
+      }
+
+      console.log('✅ [Language Update] Successfully updated iOS language for', r.rowCount, 'subscription(s)');
+      res.json({ ok: true, updated: r.rowCount });
+    } else {
+      // Web endpoint lookup - language is stored in data JSON
+      console.log('🌐 [Language Update] Using web endpoint:', endpoint, 'language:', language);
+
+      // Get current subscription data
+      const { rows: current } = await pool.query(
+        "SELECT data FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
+        [endpoint]
+      );
+
+      if (current.length === 0) {
+        console.log('❌ [Language Update] Active web subscription not found');
+        return res.status(404).json({ ok: false, error: "Active subscription not found" });
+      }
+
+      // Update the language in the subscription data
+      const subscriptionData = typeof current[0].data === "string" ? JSON.parse(current[0].data) : current[0].data;
+      subscriptionData.language = language;
+
+      const r = await pool.query(
+        "UPDATE subs SET data = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
+        [JSON.stringify(subscriptionData), endpoint]
+      );
+
+      console.log('✅ [Language Update] Successfully updated web language for', r.rowCount, 'subscription(s)');
+      res.json({ ok: true, updated: r.rowCount });
     }
-
-    // Update the language in the subscription data
-    const subscriptionData = typeof current[0].data === "string" ? JSON.parse(current[0].data) : current[0].data;
-    subscriptionData.language = language;
-
-    const r = await pool.query(
-      "UPDATE subs SET data = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
-      [JSON.stringify(subscriptionData), endpoint]
-    );
-
-    res.json({ ok: true, updated: r.rowCount });
   } catch (error) {
-    console.error("Update language error:", error);
+    console.error("❌ [Language Update] Database error:", error);
     res.status(500).json({ ok: false, error: "Database error" });
   }
 });
@@ -679,13 +737,31 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
 });
 
 app.post("/admin/send-now", guard, async (req, res) => {
-  const { endpoint } = req.body;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  const { endpoint, iosToken } = req.body;
+
+  if (!endpoint && !iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  }
 
   try {
-    // Find the subscription by endpoint - exclude deactivated
-    const { rows } = await pool.query("SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)", [endpoint]);
+    let query, params;
+
+    if (iosToken) {
+      // iOS token lookup
+      console.log('📱 [Send Now] Using iOS token:', iosToken);
+      query = "SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
+      params = [iosToken];
+    } else {
+      // Web endpoint lookup
+      console.log('🌐 [Send Now] Using web endpoint:', endpoint);
+      query = "SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
+      params = [endpoint];
+    }
+
+    // Find the subscription - exclude deactivated
+    const { rows } = await pool.query(query, params);
     if (rows.length === 0) {
+      console.log('❌ [Send Now] Subscription not found or deactivated');
       return res.status(404).json({ ok: false, error: "Subscription not found or deactivated" });
     }
 
@@ -697,26 +773,35 @@ app.post("/admin/send-now", guard, async (req, res) => {
       // For iOS, language is stored directly in the language column
       language = row.language || 'italian';
       sub = null; // iOS doesn't use the data column for subscription info
+      console.log('📱 [Send Now] iOS subscription found, language:', language);
     } else {
       // For web, language is stored in the data JSON
       sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
       language = sub.language || 'italian';
+      console.log('🌐 [Send Now] Web subscription found, language:', language);
     }
 
     const difficulty = row.difficulty || 'easy';
 
     // Generate a phrase for this user's language and difficulty
+    console.log('🎲 [Send Now] Generating phrase for language:', language, 'difficulty:', difficulty);
     const phrase = randomPhraseNoRepeat(language, difficulty);
 
+    console.log('📤 [Send Now] Sending push notification...');
     await sendPushToSubscription(row, phrase, difficulty);
 
+    console.log('✅ [Send Now] Notification sent successfully');
     res.json({ ok: true, sent: 1 });
   } catch (error) {
-    console.error("Send now failed:", error);
+    console.error("❌ [Send Now] Failed:", error);
 
     // Clean up invalid subscriptions
     if (error.statusCode === 410 || error.statusCode === 404) {
-      await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+      if (endpoint) {
+        await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
+      } else if (iosToken) {
+        await pool.query("DELETE FROM subs WHERE ios_token = $1", [iosToken]);
+      }
     }
 
     res.status(500).json({ ok: false, error: "Failed to send notification" });

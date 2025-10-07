@@ -8,6 +8,7 @@ class CapacitorManager {
     this.app = app;
     this.isCapacitor = window.Capacitor !== undefined;
     this.pushNotifications = null;
+    this.registrationInProgress = false;
 
     if (this.isCapacitor) {
       this.initializeCapacitor();
@@ -105,22 +106,55 @@ class CapacitorManager {
       throw new Error('Capacitor not initialized');
     }
 
-    console.log('📱 [Capacitor] Calling pushNotifications.register()...');
-    await this.pushNotifications.register();
-    console.log('✅ [Capacitor] Register call completed, waiting for callback...');
+    if (this.registrationInProgress) {
+      console.warn('⚠️ [Capacitor] Registration already in progress, skipping...');
+      return;
+    }
 
-    // Set a timeout to catch if no callback is received
-    setTimeout(() => {
-      console.warn('⚠️ [Capacitor] No registration callback received after 10 seconds!');
-      console.warn('⚠️ [Capacitor] This usually means APNs environment mismatch or network issues');
-    }, 10000);
+    this.registrationInProgress = true;
+
+    // Add additional diagnostics
+    console.log('🔍 [Capacitor] Capacitor info:', window.Capacitor?.getPlatform());
+    console.log('🔍 [Capacitor] Plugin available:', !!this.pushNotifications);
+    console.log('🔍 [Capacitor] Plugin methods:', Object.keys(this.pushNotifications || {}));
+
+    console.log('📱 [Capacitor] Calling pushNotifications.register()...');
+
+    try {
+      const result = await this.pushNotifications.register();
+      console.log('✅ [Capacitor] Register call completed, result:', result);
+      console.log('✅ [Capacitor] Waiting for callback...');
+
+      // Set a timeout to catch if no callback is received
+      setTimeout(() => {
+        if (this.registrationInProgress) {
+          console.warn('⚠️ [Capacitor] No registration callback received after 10 seconds!');
+          console.warn('⚠️ [Capacitor] This usually means APNs environment mismatch or network issues');
+          console.warn('⚠️ [Capacitor] Checking if device is connected to internet...');
+          console.warn('⚠️ [Capacitor] Platform:', window.Capacitor?.getPlatform());
+          this.registrationInProgress = false;
+        }
+      }, 10000);
+    } catch (error) {
+      console.error('❌ [Capacitor] Registration failed with exception:', error);
+      console.error('❌ [Capacitor] Error type:', typeof error);
+      console.error('❌ [Capacitor] Error message:', error?.message);
+      console.error('❌ [Capacitor] Error stack:', error?.stack);
+      this.registrationInProgress = false;
+      throw error;
+    }
   }
 
   async onRegistrationSuccess(deviceToken) {
     console.log('🎉 [Capacitor] Registration success callback triggered!');
     console.log('🔑 [Capacitor] Device token received:', deviceToken);
+    this.registrationInProgress = false;
 
     try {
+      // Store device token in localStorage for future use
+      localStorage.setItem('ios_device_token', deviceToken);
+      console.log('💾 [Capacitor] Device token stored in localStorage');
+
       // Get current language and difficulty from UI
       const language = this.app.elements.languageSelect.value;
       const difficulty = this.app.elements.difficultySelect.value;
@@ -149,7 +183,7 @@ class CapacitorManager {
       if (data.ok) {
         console.log('✅ [Capacitor] iOS device registered successfully');
         // Update UI to show subscribed state
-        this.app.uiController.setButtonState('unsub');
+        this.app.uiController.setButtonState('sub');
         this.app.uiController.showSubscribeInfo();
       } else {
         console.error('❌ [Capacitor] Server registration failed:', data.error);
@@ -157,13 +191,14 @@ class CapacitorManager {
       }
     } catch (error) {
       console.error('❌ [Capacitor] Failed to register device token:', error);
-      this.app.uiController.setButtonState('sub');
+      this.app.uiController.setButtonState('unsub');
     }
   }
 
   onRegistrationError(error) {
     console.error('❌ [Capacitor] Push registration failed:', error);
     console.error('❌ [Capacitor] Error details:', JSON.stringify(error));
+    this.registrationInProgress = false;
     this.app.uiController.setButtonState('sub');
   }
 
@@ -190,7 +225,7 @@ class CapacitorManager {
   }
 
   async checkExistingSubscription() {
-    console.log('🔍 [Capacitor] Checking iOS subscription status in database...');
+    console.log('🔍 [Capacitor] Checking iOS subscription status...');
 
     try {
       if (!this.pushNotifications) {
@@ -198,41 +233,225 @@ class CapacitorManager {
         return false;
       }
 
-      // Best practice: Always get fresh device token from system
-      console.log('📱 [Capacitor] Requesting fresh device token for subscription check...');
-
-      // First check if we have permission
-      const permStatus = await this.pushNotifications.checkPermissions();
-      if (permStatus.receive !== 'granted') {
-        console.log('ℹ️ [Capacitor] No permission granted, showing Subscribe button');
+      // Get stored device token from localStorage
+      const deviceToken = localStorage.getItem('ios_device_token');
+      if (!deviceToken) {
+        console.log('ℹ️ [Capacitor] No stored device token found');
         return false;
       }
 
-      // Register to get current device token
-      await this.pushNotifications.register();
+      console.log('🔍 [Capacitor] Checking subscription with stored device token');
+      const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_IOS_EXISTS}?deviceToken=${encodeURIComponent(deviceToken)}`);
+      const data = await response.json();
 
-      // We'll get the token in the registration callback
-      // For now, return false as we don't have the token yet
-      // TODO: Implement proper token-based checking in registration callback
-      return false;
+      console.log('📋 [Capacitor] Subscription check result:', data);
+      return data.exists || false;
     } catch (error) {
       console.error('❌ [Capacitor] Error checking subscription:', error);
       return false;
     }
   }
 
+  async sendNow() {
+    console.log('🔍 [Capacitor] Starting Send Now for iOS...');
+
+    try {
+      if (!this.pushNotifications) {
+        console.error('❌ [Capacitor] pushNotifications not initialized');
+        throw new Error('Capacitor not initialized');
+      }
+
+      const deviceToken = localStorage.getItem('ios_device_token');
+      if (!deviceToken) {
+        console.error('❌ [Capacitor] No device token available for Send Now');
+        throw new Error('Device not registered');
+      }
+
+      console.log('🔍 [Capacitor] Using device token for Send Now');
+
+      const adminKeyResponse = await fetch(this.app.CONSTANTS.ENDPOINTS.ADMIN_KEY);
+      const adminKey = await adminKeyResponse.text();
+      console.log('🔑 [Capacitor] Retrieved admin key for Send Now');
+
+      console.log('📡 [Capacitor] Sending iOS Send Now request...');
+      const response = await fetch(this.app.CONSTANTS.ENDPOINTS.ADMIN_SEND_NOW, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Key": adminKey
+        },
+        body: JSON.stringify({
+          iosToken: deviceToken
+        })
+      });
+
+      console.log('📡 [Capacitor] Send Now response status:', response.status);
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('📡 [Capacitor] Send Now response data:', responseData);
+        console.log('✅ [Capacitor] Send Now successful');
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('❌ [Capacitor] Send Now failed:', errorData);
+        throw new Error(errorData.error || 'Failed to send notification');
+      }
+    } catch (error) {
+      console.error('❌ [Capacitor] Send Now error:', error);
+      throw error;
+    }
+  }
+
+  async updateDifficulty(difficulty) {
+    console.log('🔍 [Capacitor] Starting difficulty update for iOS:', difficulty);
+
+    try {
+      if (!this.pushNotifications) {
+        console.error('❌ [Capacitor] pushNotifications not initialized');
+        throw new Error('Capacitor not initialized');
+      }
+
+      const deviceToken = localStorage.getItem('ios_device_token');
+      if (!deviceToken) {
+        console.error('❌ [Capacitor] No device token available for difficulty update');
+        throw new Error('Device not registered');
+      }
+
+      console.log('🔍 [Capacitor] Using device token for difficulty update');
+
+      console.log('📡 [Capacitor] Sending iOS difficulty update request...');
+      const response = await fetch(this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_DIFFICULTY, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          iosToken: deviceToken,
+          difficulty: difficulty
+        })
+      });
+
+      console.log('📡 [Capacitor] Difficulty update response status:', response.status);
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('📡 [Capacitor] Difficulty update response data:', responseData);
+        console.log('✅ [Capacitor] Difficulty updated successfully');
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('❌ [Capacitor] Difficulty update failed:', errorData);
+        throw new Error(errorData.error || 'Failed to update difficulty');
+      }
+    } catch (error) {
+      console.error('❌ [Capacitor] Difficulty update error:', error);
+      throw error;
+    }
+  }
+
+  async updateLanguage(language) {
+    console.log('🔍 [Capacitor] Starting language update for iOS:', language);
+
+    try {
+      if (!this.pushNotifications) {
+        console.error('❌ [Capacitor] pushNotifications not initialized');
+        throw new Error('Capacitor not initialized');
+      }
+
+      const deviceToken = localStorage.getItem('ios_device_token');
+      if (!deviceToken) {
+        console.error('❌ [Capacitor] No device token available for language update');
+        throw new Error('Device not registered');
+      }
+
+      console.log('🔍 [Capacitor] Using device token for language update');
+
+      console.log('📡 [Capacitor] Sending iOS language update request...');
+      const response = await fetch(this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_LANGUAGE, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          iosToken: deviceToken,
+          language: language
+        })
+      });
+
+      console.log('📡 [Capacitor] Language update response status:', response.status);
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('📡 [Capacitor] Language update response data:', responseData);
+        console.log('✅ [Capacitor] Language updated successfully');
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('❌ [Capacitor] Language update failed:', errorData);
+        throw new Error(errorData.error || 'Failed to update language');
+      }
+    } catch (error) {
+      console.error('❌ [Capacitor] Language update error:', error);
+      throw error;
+    }
+  }
+
+  async getLastNotification() {
+    console.log('🔍 [Capacitor] Getting last notification for iOS...');
+
+    try {
+      const deviceToken = localStorage.getItem('ios_device_token');
+      if (!deviceToken) {
+        console.log('ℹ️ [Capacitor] No device token available for last notification');
+        return { ok: false, hasNotification: false };
+      }
+
+      console.log('🔍 [Capacitor] Using device token for last notification');
+      const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.LAST_NOTIFICATION}?iosToken=${encodeURIComponent(deviceToken)}`);
+      const data = await response.json();
+
+      console.log('📋 [Capacitor] Last notification response:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ [Capacitor] Error getting last notification:', error);
+      return { ok: false, hasNotification: false };
+    }
+  }
+
   async unsubscribe() {
+    console.log('🔍 [Capacitor] Starting iOS unsubscribe...');
+
     if (!this.pushNotifications) {
       throw new Error('Capacitor not initialized');
     }
 
-    // For iOS, we need to get the current device token and remove it from server
-    // Since we can't get the token directly, we'll rely on server-side cleanup
-    // when push notifications fail
+    try {
+      const deviceToken = localStorage.getItem('ios_device_token');
+      if (!deviceToken) {
+        console.log('ℹ️ [Capacitor] No device token to unsubscribe');
+        return;
+      }
 
-    // For now, we'll just remove permissions
-    // Note: iOS doesn't allow programmatic unregistration from notifications
-    console.log('iOS unsubscribe - permissions cannot be revoked programmatically');
-    throw new Error('iOS notifications must be disabled in Settings app');
+      console.log('📡 [Capacitor] Sending unsubscribe request to server...');
+      const response = await fetch(this.app.CONSTANTS.ENDPOINTS.SUBSCRIBE_IOS, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deviceToken: deviceToken
+        })
+      });
+
+      console.log('📡 [Capacitor] Unsubscribe response status:', response.status);
+
+      if (response.ok) {
+        console.log('✅ [Capacitor] Successfully unsubscribed from server');
+        // Clear stored device token
+        localStorage.removeItem('ios_device_token');
+        console.log('💾 [Capacitor] Device token removed from localStorage');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ [Capacitor] Unsubscribe failed:', errorData);
+        throw new Error(errorData.error || 'Failed to unsubscribe');
+      }
+    } catch (error) {
+      console.error('❌ [Capacitor] Unsubscribe error:', error);
+      throw error;
+    }
   }
 }
