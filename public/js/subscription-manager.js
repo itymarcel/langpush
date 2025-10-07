@@ -183,7 +183,9 @@ class SubscriptionManager {
         // Try to unsubscribe
         await this.app.capacitorManager.unsubscribe();
         this.app.uiController.setButtonState("unsub");
-        this.app.uiController.hideSubscribeInfo();
+        this.app.uiController.updateUI(false, null, null, this.app.elements.languageSelect, this.app.elements.difficultySelect);
+        // Hide last notification when unsubscribed (like web version)
+        this.app.sendNowManager.hideLastNotification();
       } else {
         // Subscribe to push notifications
         await this.app.capacitorManager.requestPermissions();
