@@ -220,19 +220,42 @@ app.get("/last-notification", async (req, res) => {
 
 // Get notification history for a subscription
 app.get("/notifications", async (req, res) => {
-  const { endpoint, limit = 10 } = req.query;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
+  const { endpoint, iosToken, limit = 10 } = req.query;
+
+  if (!endpoint && !iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  }
 
   try {
-    const { rows } = await pool.query(`
-      SELECT n.phrase_original, n.phrase_english, n.language, n.difficulty, n.sent_at
-      FROM notifications n
-      JOIN subs s ON n.subscription_id = s.id
-      WHERE s.data->>'endpoint' = $1
-      AND (s.deactivated = FALSE OR s.deactivated IS NULL)
-      ORDER BY n.sent_at DESC
-      LIMIT $2
-    `, [endpoint, parseInt(limit)]);
+    let query, params;
+
+    if (iosToken) {
+      // iOS token lookup
+      query = `
+        SELECT n.phrase_original, n.phrase_english, n.language, n.difficulty, n.sent_at
+        FROM notifications n
+        JOIN subs s ON n.subscription_id = s.id
+        WHERE s.ios_token = $1
+        AND (s.deactivated = FALSE OR s.deactivated IS NULL)
+        ORDER BY n.sent_at DESC
+        LIMIT $2
+      `;
+      params = [iosToken, parseInt(limit)];
+    } else {
+      // Web endpoint lookup
+      query = `
+        SELECT n.phrase_original, n.phrase_english, n.language, n.difficulty, n.sent_at
+        FROM notifications n
+        JOIN subs s ON n.subscription_id = s.id
+        WHERE s.data->>'endpoint' = $1
+        AND (s.deactivated = FALSE OR s.deactivated IS NULL)
+        ORDER BY n.sent_at DESC
+        LIMIT $2
+      `;
+      params = [endpoint, parseInt(limit)];
+    }
+
+    const { rows } = await pool.query(query, params);
 
     res.json({
       ok: true,
@@ -660,10 +683,10 @@ async function sendIOSPushNotification(subscriptionRow, sub, phrase, language, o
   // Create APNs notification
   const note = new apn.Notification();
 
-  // Set notification content
+  // Set notification content (show English translation first, like web app)
   note.alert = {
     title: "New Phrase!",
-    body: `${originalText} - Tap to see translation`
+    body: `${phrase.en} - Tap to see original`
   };
 
   // Add custom data for click handling

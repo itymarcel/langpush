@@ -36,19 +36,38 @@ class NotificationHistory {
     this.setHistoryButtonLoading(true);
 
     try {
-      const serviceWorker = await this.app.subscriptionManager.readyServiceWorker();
-      if (!serviceWorker) return;
+      // Check if running on iOS Capacitor
+      if (this.app.capacitorManager && this.app.capacitorManager.isCapacitor) {
+        const deviceToken = localStorage.getItem('ios_device_token');
+        if (!deviceToken) {
+          alert("No device token found. Please subscribe first.");
+          return;
+        }
 
-      const subscription = await serviceWorker.pushManager.getSubscription();
-      if (!subscription) return;
+        const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.NOTIFICATIONS}?iosToken=${encodeURIComponent(deviceToken)}&limit=5`);
+        const data = await response.json();
 
-      const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.NOTIFICATIONS}?endpoint=${encodeURIComponent(subscription.endpoint)}&limit=5`);
-      const data = await response.json();
-
-      if (data.ok) {
-        this.showHistoryOverlay(data.notifications);
+        if (data.ok) {
+          this.showHistoryOverlay(data.notifications);
+        } else {
+          alert("Failed to load notification history.");
+        }
       } else {
-        alert("Failed to load notification history.");
+        // Web subscription logic
+        const serviceWorker = await this.app.subscriptionManager.readyServiceWorker();
+        if (!serviceWorker) return;
+
+        const subscription = await serviceWorker.pushManager.getSubscription();
+        if (!subscription) return;
+
+        const response = await fetch(`${this.app.CONSTANTS.ENDPOINTS.NOTIFICATIONS}?endpoint=${encodeURIComponent(subscription.endpoint)}&limit=5`);
+        const data = await response.json();
+
+        if (data.ok) {
+          this.showHistoryOverlay(data.notifications);
+        } else {
+          alert("Failed to load notification history.");
+        }
       }
     } catch (error) {
       console.error("Failed to load history:", error);
