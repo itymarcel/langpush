@@ -103,6 +103,31 @@ try {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_subs_deactivated ON subs(deactivated);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_subscription_sent_at ON notifications(subscription_id, sent_at DESC);`);
 
+  // Migrate iOS language data from JSON data column to dedicated language column
+  console.log('🔄 Migrating iOS language data...');
+  const { rows: iosRows } = await pool.query(`
+    SELECT id, data
+    FROM subs
+    WHERE platform = 'ios'
+    AND (language IS NULL OR language = 'italian')
+    AND data IS NOT NULL
+  `);
+
+  for (const row of iosRows) {
+    try {
+      const data = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
+      if (data.language && data.language !== 'italian') {
+        await pool.query(
+          `UPDATE subs SET language = $1 WHERE id = $2`,
+          [data.language, row.id]
+        );
+        console.log(`✅ Migrated language '${data.language}' for iOS subscription ${row.id}`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to migrate language for iOS subscription ${row.id}:`, error);
+    }
+  }
+
   console.log('✅ Database migration completed successfully');
 } catch (error) {
   console.error('❌ Database migration failed:', error);
@@ -474,8 +499,8 @@ app.post("/subscribe/ios", async (req, res) => {
     if (existing.rows.length > 0) {
       // Update existing iOS subscription
       const r = await pool.query(
-        "UPDATE subs SET data = $1, difficulty = $2 WHERE ios_token = $3 AND (deactivated = FALSE OR deactivated IS NULL)",
-        [JSON.stringify({ language, platform: 'ios' }), difficulty, deviceToken]
+        "UPDATE subs SET data = $1, difficulty = $2, language = $3 WHERE ios_token = $4 AND (deactivated = FALSE OR deactivated IS NULL)",
+        [JSON.stringify({ platform: 'ios' }), difficulty, language, deviceToken]
       );
 
       res.json({
@@ -487,8 +512,8 @@ app.post("/subscribe/ios", async (req, res) => {
     } else {
       // Create new iOS subscription
       const r = await pool.query(
-        "INSERT INTO subs (data, platform, ios_token, difficulty) VALUES ($1, $2, $3, $4) RETURNING id",
-        [JSON.stringify({ language, platform: 'ios' }), 'ios', deviceToken, difficulty]
+        "INSERT INTO subs (data, platform, ios_token, difficulty, language) VALUES ($1, $2, $3, $4, $5) RETURNING id",
+        [JSON.stringify({ platform: 'ios' }), 'ios', deviceToken, difficulty, language]
       );
 
       res.json({
@@ -513,19 +538,18 @@ app.get("/subscribe/ios/exists", async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      "SELECT id, difficulty, data FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
+      "SELECT id, difficulty, language FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
       [deviceToken]
     );
 
     if (rows.length > 0) {
       const sub = rows[0];
-      const data = typeof sub.data === "string" ? JSON.parse(sub.data) : sub.data;
 
       res.json({
         ok: true,
         exists: true,
         subscriptionId: sub.id,
-        language: data.language || 'italian',
+        language: sub.language || 'italian',
         difficulty: sub.difficulty || 'easy'
       });
     } else {
