@@ -243,14 +243,14 @@ class CapacitorManager {
     try {
       if (!this.pushNotifications) {
         console.log('ℹ️ [Capacitor] No push notifications available');
-        return false;
+        return { exists: false, language: null, difficulty: null };
       }
 
       // Get stored device token from localStorage
       const deviceToken = localStorage.getItem('ios_device_token');
       if (!deviceToken) {
         console.log('ℹ️ [Capacitor] No stored device token found');
-        return false;
+        return { exists: false, language: null, difficulty: null };
       }
 
       console.log('🔍 [Capacitor] Checking subscription with stored device token');
@@ -258,10 +258,19 @@ class CapacitorManager {
       const data = await response.json();
 
       console.log('📋 [Capacitor] Subscription check result:', data);
-      return data.exists || false;
+
+      if (data.exists) {
+        return {
+          exists: true,
+          language: data.language || 'italian',
+          difficulty: data.difficulty || 'easy'
+        };
+      } else {
+        return { exists: false, language: null, difficulty: null };
+      }
     } catch (error) {
       console.error('❌ [Capacitor] Error checking subscription:', error);
-      return false;
+      return { exists: false, language: null, difficulty: null };
     }
   }
 

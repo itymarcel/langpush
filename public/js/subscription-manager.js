@@ -84,11 +84,12 @@ class SubscriptionManager {
     // Handle Capacitor (iOS app) differently
     if (this.app.config.isCapacitor) {
       try {
-        const hasPermission = await this.app.capacitorManager.checkExistingSubscription();
+        const subscriptionData = await this.app.capacitorManager.checkExistingSubscription();
+        const hasPermission = subscriptionData.exists;
         // Note: "sub" shows unsubscribe button (subscribed), "unsub" shows subscribe button (unsubscribed)
         this.app.uiController.setButtonState(hasPermission ? "sub" : "unsub");
-        this.app.uiController.updateUI(hasPermission, null, null, this.app.elements.languageSelect, this.app.elements.difficultySelect);
-        return { subscription: null, existsOnServer: hasPermission, savedLanguage: null, savedDifficulty: null };
+        this.app.uiController.updateUI(hasPermission, subscriptionData.language, subscriptionData.difficulty, this.app.elements.languageSelect, this.app.elements.difficultySelect);
+        return { subscription: null, existsOnServer: hasPermission, savedLanguage: subscriptionData.language, savedDifficulty: subscriptionData.difficulty };
       } catch (error) {
         console.error('Failed to check iOS subscription:', error);
         // Default to unsubscribed state on error
@@ -175,7 +176,8 @@ class SubscriptionManager {
       this.app.uiController.setButtonState("loading");
 
       // Check current subscription state
-      const hasPermission = await this.app.capacitorManager.checkExistingSubscription();
+      const subscriptionData = await this.app.capacitorManager.checkExistingSubscription();
+      const hasPermission = subscriptionData.exists;
 
       if (hasPermission) {
         // Try to unsubscribe
