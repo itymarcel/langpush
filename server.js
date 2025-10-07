@@ -683,10 +683,19 @@ async function sendIOSPushNotification(subscriptionRow, sub, phrase, language, o
   // Create APNs notification
   const note = new apn.Notification();
 
-  // Set notification content (show English translation first, like web app)
+  // Set notification content with language-specific title
+  const languageFlags = {
+    italian: '🇮🇹',
+    spanish: '🇪🇸',
+    french: '🇫🇷',
+    japanese: '🇯🇵'
+  };
+
+  const flag = languageFlags[language] || '🌍';
+
   note.alert = {
-    title: "New Phrase!",
-    body: `${phrase.en} - Tap to see original`
+    title: `Translate To ${flag}`,
+    body: phrase.en
   };
 
   // Add custom data for click handling
