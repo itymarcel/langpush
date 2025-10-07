@@ -28,6 +28,9 @@ class CapacitorManager {
         // Set up push notification listeners
         this.setupPushListeners();
 
+        // Clear notification badge when app opens
+        this.clearNotificationBadge();
+
         console.log('✅ Capacitor initialized successfully');
       } else {
         console.log('⚠️ Capacitor not available - running in browser mode');
@@ -204,6 +207,9 @@ class CapacitorManager {
   onNotificationTapped(notification) {
     console.log('Notification tapped:', notification);
 
+    // Clear notification badge when notification is tapped
+    this.clearNotificationBadge();
+
     // If the app was opened from a notification, show the history
     const data = notification.notification.data;
     if (data && data.sentAt) {
@@ -213,6 +219,21 @@ class CapacitorManager {
           this.app.history.highlightNotification(data.sentAt);
         });
       }, 1000);
+    }
+  }
+
+  /**
+   * Clear notification badge and delivered notifications
+   */
+  async clearNotificationBadge() {
+    if (!this.pushNotifications) return;
+
+    try {
+      // Remove all delivered notifications from notification center
+      await this.pushNotifications.removeAllDeliveredNotifications();
+      console.log('📱 [Capacitor] Cleared notification badge and delivered notifications');
+    } catch (error) {
+      console.error('❌ [Capacitor] Failed to clear notification badge:', error);
     }
   }
 
