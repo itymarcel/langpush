@@ -113,7 +113,7 @@ h1 {
   gap: 1px;
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 35px;
+  margin-bottom: 40px;
 }
 
 .last-notification-header {
@@ -139,7 +139,6 @@ h1 {
 .last-notification-header .ios-icon {
   width: 14px;
   height: 14px;
-  color: black;
   stroke-width: 3px;
 }
 
@@ -314,6 +313,10 @@ h1 {
   margin-bottom: 10px;
 }
 
+.chicken-popover {
+  text-align: center;
+}
+
 /* History Button */
 .history-button {
   padding: 4px;
@@ -321,7 +324,7 @@ h1 {
   box-shadow: none;
   border: none;
   background: none;
-  opacity: 0.5;
+  color: rgba(0, 0, 0, 1);
 }
 
 /* History Overlay */
