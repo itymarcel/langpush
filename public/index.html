@@ -27,10 +27,11 @@
   <div id="main-container">
     <div class="headline-container">
       <h1 id="chickenBtn">
-        <svg width="20" height="20" viewBox="0 0 114 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M106.573 35.674C106.573 20.0736 93.9263 7.42698 78.3259 7.42695C62.7255 7.42695 50.0788 20.0736 50.0788 35.674C50.0788 51.2744 62.7255 63.9211 78.3259 63.9211V71.3481L77.8648 71.345C58.5286 71.1001 42.8997 55.4713 42.6548 36.1351L42.6519 35.674C42.6519 15.9718 58.6237 0 78.3259 0L78.787 0.00290115C98.2766 0.249794 114 16.1258 114 35.674L113.997 36.1351C113.75 55.6248 97.8741 71.348 78.3259 71.3481V63.9211C93.9263 63.9211 106.573 51.2744 106.573 35.674Z" fill="#0000FF"/>
-          <path d="M63.9211 35.674C63.9211 20.0736 51.2744 7.42698 35.674 7.42695C20.0736 7.42695 7.42695 20.0736 7.42695 35.674C7.42698 51.2744 20.0736 63.9211 35.674 63.9211V71.3481L35.213 71.345C15.8767 71.1001 0.24785 55.4713 0.00290115 36.1351L0 35.674C0 15.9718 15.9718 0 35.674 0L36.1351 0.00290115C55.6248 0.249794 71.3481 16.1258 71.3481 35.674L71.345 36.1351C71.0981 55.6248 55.2223 71.348 35.674 71.3481V63.9211C51.2744 63.9211 63.9211 51.2744 63.9211 35.674Z" fill="#0000FF"/>
+        <svg width="22" viewBox="0 0 104 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M60 35C60 21.1929 48.8071 10 35 10C21.1929 10 10 21.1929 10 35C10 48.8071 21.1929 60 35 60V70C15.67 70 0 54.33 0 35C0 15.67 15.67 0 35 0C54.33 0 70 15.67 70 35C70 54.33 54.33 70 35 70V60C48.8071 60 60 48.8071 60 35Z" fill="#0000FF"/>
+          <path d="M94 35C94 21.1929 82.8071 10 69 10C55.1929 10 44 21.1929 44 35C44 48.8071 55.1929 60 69 60V70C49.67 70 34 54.33 34 35C34 15.67 49.67 0 69 0C88.33 0 104 15.67 104 35C104 54.33 88.33 70 69 70V60C82.8071 60 94 48.8071 94 35Z" fill="#0000FF"/>
         </svg>
+
 
         LANGPUSH
       </h1>
@@ -89,13 +90,9 @@
 
     <div class="last-notification" style="display: none;">
       <div class="last-notification-header">
-        <label class="">Last</label>
-        <button id="refreshLastBtn" class="refresh-btn" title="Refresh last notification">
-          <i data-lucide="refresh-cw" class="ios-icon"></i>
-        </button>
         <button id="historyBtn" style="display: none;" class="history-button">
           <span class="history-normal-state">
-            <i data-lucide="history" class="ios-icon"></i>
+            <i data-lucide="clock-8" class="ios-icon"></i>
           </span>
           <span class="history-loading-state" style="display: none;">
             <i data-lucide="loader" class="ios-icon rotating"></i>
@@ -144,11 +141,11 @@
       </span>
     </button>
 
-    <div id="subscribe-info">
+    <!-- <div id="subscribe-info">
       <div id="subscribed-message" style="display: none;">
-        You're receiving <b>three</b> hand picked <br/>
-        <b><span id="subscribed-language">Italian</span> ↔ English</b> phrase pairs <br/>
-        a day (<span id="subscribed-difficulty">easy</span> level).<br/><br/> 
+        Three hand picked <br/>
+        <span id="subscribed-language">Italian</span> ↔ English<br/>pairs
+        a day.
       </div>
       <div id="unsubscribed-message" style="display: none;">
         Once subscribed, you'll receive <br/>
@@ -156,7 +153,7 @@
         with hand picked <b><span id="unsubscribed-language">Italian</span> ↔ English</b><br/>
         phrase pairs (<span id="unsubscribed-difficulty">easy</span> level).
       </div>
-    </div>
+    </div> -->
   </div>
 
   <script src="/js/config.js"></script>

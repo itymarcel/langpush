@@ -62,7 +62,7 @@ class UIController {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
         }
-        this.app.elements.subscribeInfo.style.display = "none";
+        // this.app.elements.subscribeInfo.style.display = "none";
         break;
 
       default: // loading
@@ -75,7 +75,7 @@ class UIController {
           spinner.style.visibility = "hidden";
           spinner.style.opacity = "0";
         }
-        this.app.elements.subscribeInfo.style.display = "none";
+        // this.app.elements.subscribeInfo.style.display = "none";
         break;
     }
 
@@ -103,9 +103,9 @@ class UIController {
       if (subscribedDifficulty) subscribedDifficulty.textContent = difficultyName;
     }
 
-    if (this.app.elements.subscribeInfo) {
-      this.app.elements.subscribeInfo.style.display = 'block';
-    }
+    // if (this.app.elements.subscribeInfo) {
+    //   this.app.elements.subscribeInfo.style.display = 'block';
+    // }
   }
 
   /**
@@ -129,9 +129,9 @@ class UIController {
       if (unsubscribedDifficulty) unsubscribedDifficulty.textContent = difficultyName;
     }
 
-    if (this.app.elements.subscribeInfo) {
-      this.app.elements.subscribeInfo.style.display = 'block';
-    }
+    // if (this.app.elements.subscribeInfo) {
+    //   this.app.elements.subscribeInfo.style.display = 'block';
+    // }
   }
 
   /**

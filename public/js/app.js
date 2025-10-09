@@ -31,12 +31,11 @@ class LinguaPush {
         DIFFICULTY_SELECT: 'difficulty-select',
         LANGUAGE_CONTAINER: 'language-container',
         DIFFICULTY_CONTAINER: 'difficulty-container',
-        SUBSCRIBE_INFO: 'subscribe-info',
+        // SUBSCRIBE_INFO: 'subscribe-info',
         CHICKEN_BTN: 'chickenBtn',
         LAST_NOTIFICATION: '.last-notification',
         LAST_NOTIFICATION_ORIGINAL: '.last-notification .original .actual-text',
         LAST_NOTIFICATION_ENGLISH: '.last-notification .english',
-        LAST_NOTIFICATION_REFRESH_BTN: 'refreshLastBtn',
         HISTORY_BTN: 'historyBtn',
       },
       LANGUAGES: {
@@ -54,12 +53,11 @@ class LinguaPush {
       sendNowButton: document.getElementById(this.CONSTANTS.SELECTORS.SEND_NOW_BUTTON),
       languageSelect: document.getElementById(this.CONSTANTS.SELECTORS.LANGUAGE_SELECT),
       difficultySelect: document.getElementById(this.CONSTANTS.SELECTORS.DIFFICULTY_SELECT),
-      subscribeInfo: document.getElementById(this.CONSTANTS.SELECTORS.SUBSCRIBE_INFO),
+      // subscribeInfo: document.getElementById(this.CONSTANTS.SELECTORS.SUBSCRIBE_INFO),
       chickenBtn: document.getElementById(this.CONSTANTS.SELECTORS.CHICKEN_BTN),
       lastNotification: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION),
       lastNotificationOriginal: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ORIGINAL),
       lastNotificationEnglish: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ENGLISH),
-      refreshLastBtn: document.getElementById(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_REFRESH_BTN),
       historyBtn: document.getElementById(this.CONSTANTS.SELECTORS.HISTORY_BTN)
     };
 
@@ -108,11 +106,6 @@ class LinguaPush {
     this.elements.difficultySelect.addEventListener("change", (e) => {
       this.preferencesManager.updateDifficultyDisplay(e.target.value);
     });
-
-    // Refresh last notification button
-    if (this.elements.refreshLastBtn) {
-      this.elements.refreshLastBtn.addEventListener("click", () => this.sendNowManager.handleRefreshLastNotification());
-    }
 
     // History button
     if (this.elements.historyBtn) {

@@ -48,11 +48,11 @@ function hideMainUI() {
   // Hide subscribe button and language dropdown on iOS when not in standalone mode
   const subBtn = document.getElementById("sub");
   const languageDropdown = document.getElementById("language-container");
-  const subscribeInfo = document.getElementById("subscribe-info");
+  // const subscribeInfo = document.getElementById("subscribe-info");
 
   if (subBtn) subBtn.style.display = "none";
   if (languageDropdown) languageDropdown.style.display = "none";
-  if (subscribeInfo) subscribeInfo.style.display = "none";
+  // if (subscribeInfo) subscribeInfo.style.display = "none";
 }
 
 function isCapacitor() {

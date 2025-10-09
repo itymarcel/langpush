@@ -174,33 +174,6 @@ class SendNowManager {
   }
 
   /**
-   * Handle refresh last notification button click
-   */
-  async handleRefreshLastNotification() {
-    if (this.app.elements.refreshLastBtn) {
-      // Add loading state to the refresh button
-      const icon = this.app.elements.refreshLastBtn.querySelector('i');
-      if (icon) {
-        icon.classList.add('rotating');
-      }
-      this.app.elements.refreshLastBtn.disabled = true;
-    }
-
-    try {
-      await this.loadLastNotification();
-    } finally {
-      // Remove loading state
-      if (this.app.elements.refreshLastBtn) {
-        const icon = this.app.elements.refreshLastBtn.querySelector('i');
-        if (icon) {
-          icon.classList.remove('rotating');
-        }
-        this.app.elements.refreshLastBtn.disabled = false;
-      }
-    }
-  }
-
-  /**
    * Load and display last notification
    */
   async loadLastNotification() {
