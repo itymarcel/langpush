@@ -175,8 +175,9 @@ class SendNowManager {
 
   /**
    * Load and display last notification
+   * @param {number} retryCount - Number of retries for polling new data
    */
-  async loadLastNotification() {
+  async loadLastNotification(retryCount = 0) {
     console.log('🔍 [SendNowManager] Loading last notification...');
     try {
       // Check if running on iOS Capacitor
@@ -188,8 +189,18 @@ class SendNowManager {
           console.log('✅ [SendNowManager] iOS last notification found');
           this.displayLastNotification(data.original, data.english, data.language, data.sentAt);
         } else {
-          console.log('ℹ️ [SendNowManager] No iOS last notification found');
-          this.hideLastNotification();
+          // If no notification found and we have retries left, try again
+          if (retryCount > 0) {
+            console.log(`ℹ️ [SendNowManager] No iOS notification found, retrying (${retryCount} retries left)...`);
+            return new Promise(resolve => {
+              setTimeout(() => {
+                resolve(this.loadLastNotification(retryCount - 1));
+              }, 1000);
+            });
+          } else {
+            console.log('ℹ️ [SendNowManager] No iOS last notification found');
+            this.hideLastNotification();
+          }
         }
         return;
       }
@@ -217,8 +228,18 @@ class SendNowManager {
         console.log('✅ [SendNowManager] Web last notification found');
         this.displayLastNotification(data.original, data.english, data.language, data.sentAt);
       } else {
-        console.log('ℹ️ [SendNowManager] No web last notification found');
-        this.hideLastNotification();
+        // If no notification found and we have retries left, try again
+        if (retryCount > 0) {
+          console.log(`ℹ️ [SendNowManager] No notification found, retrying (${retryCount} retries left)...`);
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve(this.loadLastNotification(retryCount - 1));
+            }, 1000);
+          });
+        } else {
+          console.log('ℹ️ [SendNowManager] No web last notification found');
+          this.hideLastNotification();
+        }
       }
     } catch (error) {
       console.error("❌ [SendNowManager] Failed to load last notification:", error);

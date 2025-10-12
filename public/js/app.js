@@ -112,6 +112,16 @@ class LinguaPush {
       this.elements.historyBtn.addEventListener("click", () => this.history.handleShowHistory());
     }
 
+    // Tap to refresh last notification
+    if (this.elements.lastNotification) {
+      this.elements.lastNotification.addEventListener("click", (e) => {
+        // Only refresh if not clicking on reveal or history button
+        if (!e.target.closest('.reveal-text') && !e.target.closest('.history-button')) {
+          this.sendNowManager.loadLastNotification();
+        }
+      });
+    }
+
     // Icons initialization
     document.addEventListener('DOMContentLoaded', () => {
       Utils.initializeIcons();

@@ -61,10 +61,16 @@ class NotificationHandler {
 
       console.log('App: Visibility changed to:', document.visibilityState);
 
-      if (!wasVisible && this.isAppVisible && this.pendingNotificationTimestamp) {
-        console.log('App: App became visible with pending notification');
-        this.handleNotificationNavigation(this.pendingNotificationTimestamp);
-        this.pendingNotificationTimestamp = null;
+      if (!wasVisible && this.isAppVisible) {
+        // App became visible again - refresh latest notification
+        this.app.sendNowManager.loadLastNotification();
+
+        // Handle pending notification if exists
+        if (this.pendingNotificationTimestamp) {
+          console.log('App: App became visible with pending notification');
+          this.handleNotificationNavigation(this.pendingNotificationTimestamp);
+          this.pendingNotificationTimestamp = null;
+        }
       }
     }, false);
 
@@ -99,14 +105,6 @@ class NotificationHandler {
         }, 100);
       }
     }, false);
-
-    // Refresh data when app becomes visible again (from background/swipe away)
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        // App became visible again - refresh latest notification
-        this.app.sendNowManager.loadLastNotification();
-      }
-    });
   }
 
   /**
@@ -132,14 +130,12 @@ class NotificationHandler {
     console.log('App: handleNotificationNavigation called with:', sentAtTimestamp);
     try {
       console.log('App: Opening history...');
-      // Open history and highlight the specific notification
+      // Open history and wait for it to be fully loaded with animations complete
       await this.app.history.handleShowHistory();
 
-      // Wait for history items to appear, then highlight
-      setTimeout(() => {
-        console.log('App: Highlighting notification...');
-        this.app.history.highlightNotification(sentAtTimestamp);
-      }, 400);
+      console.log('App: History loaded, highlighting notification...');
+      // Now highlight the notification immediately since history is ready
+      this.app.history.highlightNotification(sentAtTimestamp);
 
     } catch (error) {
       console.error('Failed to navigate to notification:', error);

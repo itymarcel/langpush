@@ -48,9 +48,10 @@ class NotificationHistory {
         const data = await response.json();
 
         if (data.ok) {
-          this.showHistoryOverlay(data.notifications);
+          return await this.showHistoryOverlay(data.notifications);
         } else {
           alert("Failed to load notification history.");
+          throw new Error("Failed to load notification history");
         }
       } else {
         // Web subscription logic
@@ -64,9 +65,10 @@ class NotificationHistory {
         const data = await response.json();
 
         if (data.ok) {
-          this.showHistoryOverlay(data.notifications);
+          return await this.showHistoryOverlay(data.notifications);
         } else {
           alert("Failed to load notification history.");
+          throw new Error("Failed to load notification history");
         }
       }
     } catch (error) {
@@ -81,115 +83,122 @@ class NotificationHistory {
    * Show history overlay with notifications
    */
   showHistoryOverlay(notifications) {
-    // Remove existing overlay if any
-    const existingOverlay = document.querySelector('.history-overlay');
-    if (existingOverlay) {
-      existingOverlay.remove();
-    }
-
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'history-overlay';
-
-    const modal = document.createElement('div');
-    modal.className = 'history-modal';
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'history-header';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'close-btn';
-    closeBtn.innerHTML = '<i data-lucide="x" class="ios-icon"></i>';
-
-    header.appendChild(closeBtn);
-
-    // Content
-    const content = document.createElement('div');
-    content.className = 'history-content';
-
-    let maxDelay = 0;
-
-    if (notifications.length === 0) {
-      const noHistory = document.createElement('p');
-      noHistory.className = 'no-history';
-      noHistory.textContent = 'No notification history found.';
-      noHistory.style.animationDelay = '0ms';
-      content.appendChild(noHistory);
-    } else {
-      // Create array of random delays for animation
-      const delays = Array.from({ length: notifications.length }, (_, i) => i * 50);
-
-      // Shuffle the delays array for random order
-      for (let i = delays.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [delays[i], delays[j]] = [delays[j], delays[i]];
+    return new Promise((resolve) => {
+      // Remove existing overlay if any
+      const existingOverlay = document.querySelector('.history-overlay');
+      if (existingOverlay) {
+        existingOverlay.remove();
       }
 
-      // Find the maximum delay
-      maxDelay = Math.max(...delays);
+      // Create overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'history-overlay';
 
-      notifications.forEach((notification, index) => {
-        const item = document.createElement('div');
-        item.className = 'history-item';
+      const modal = document.createElement('div');
+      modal.className = 'history-modal';
 
-        // Set randomized animation delay
-        item.style.animationDelay = `${delays[index]}ms`;
-        // Store the delay for reverse animation
-        item.dataset.originalDelay = delays[index];
-        // Store timestamp for highlighting
-        item.dataset.sentAt = notification.sent_at;
+      // Header
+      const header = document.createElement('div');
+      header.className = 'history-header';
 
-        const sentAt = new Date(notification.sent_at).toLocaleDateString();
-        const difficultyLabel = notification.difficulty === 'medium' ? 'Med' : 'Easy';
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'close-btn';
+      closeBtn.innerHTML = '<i data-lucide="x" class="ios-icon"></i>';
 
-        item.innerHTML = `
-          <div class="history-item-content">
-            <div class="history-border"></div>
-            <div class="history-english">${notification.phrase_english}</div>
-            <div class="history-original">${notification.phrase_original}</div>
-            <div class="history-meta">
-              <span class="history-language">${Utils.getLanguageDisplayName(notification.language)}</span>
-              <span class="history-difficulty">${difficultyLabel}</span>
-              <span class="history-date">${sentAt}</span>
+      header.appendChild(closeBtn);
+
+      // Content
+      const content = document.createElement('div');
+      content.className = 'history-content';
+
+      let maxDelay = 0;
+
+      if (notifications.length === 0) {
+        const noHistory = document.createElement('p');
+        noHistory.className = 'no-history';
+        noHistory.textContent = 'No notification history found.';
+        noHistory.style.animationDelay = '0ms';
+        content.appendChild(noHistory);
+      } else {
+        // Create array of random delays for animation
+        const delays = Array.from({ length: notifications.length }, (_, i) => i * 50);
+
+        // Shuffle the delays array for random order
+        for (let i = delays.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [delays[i], delays[j]] = [delays[j], delays[i]];
+        }
+
+        // Find the maximum delay
+        maxDelay = Math.max(...delays);
+
+        notifications.forEach((notification, index) => {
+          const item = document.createElement('div');
+          item.className = 'history-item';
+
+          // Set randomized animation delay
+          item.style.animationDelay = `${delays[index]}ms`;
+          // Store the delay for reverse animation
+          item.dataset.originalDelay = delays[index];
+          // Store timestamp for highlighting
+          item.dataset.sentAt = notification.sent_at;
+
+          const sentAt = new Date(notification.sent_at).toLocaleDateString();
+          const difficultyLabel = notification.difficulty === 'medium' ? 'Med' : 'Easy';
+
+          item.innerHTML = `
+            <div class="history-item-content">
+              <div class="history-border"></div>
+              <div class="history-english">${notification.phrase_english}</div>
+              <div class="history-original">${notification.phrase_original}</div>
+              <div class="history-meta">
+                <span class="history-language">${Utils.getLanguageDisplayName(notification.language)}</span>
+                <span class="history-difficulty">${difficultyLabel}</span>
+                <span class="history-date">${sentAt}</span>
+              </div>
             </div>
-          </div>
-        `;
-        content.appendChild(item);
-      });
-    }
-
-    modal.appendChild(header);
-    modal.appendChild(content);
-    overlay.appendChild(modal);
-
-    // Add to DOM
-    document.body.appendChild(overlay);
-
-    // Store reference for close animation and max delay
-    this.currentOverlay = overlay;
-    this.maxAnimationDelay = maxDelay;
-
-    // Fade in background
-    requestAnimationFrame(() => {
-      overlay.style.opacity = '1';
-    });
-
-    // Initialize icons for the close button
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
-
-    // Close on overlay click (anywhere except history items)
-    overlay.addEventListener('click', (e) => {
-      // Check if the clicked element is a history item or its child
-      const clickedHistoryItem = e.target.closest('.history-item');
-      const clickedCloseBtn = e.target.closest('.close-btn');
-
-      // Close if clicked outside history items OR on the close button
-      if (!clickedHistoryItem || clickedCloseBtn) {
-        this.closeHistoryWithAnimation();
+          `;
+          content.appendChild(item);
+        });
       }
+
+      modal.appendChild(header);
+      modal.appendChild(content);
+      overlay.appendChild(modal);
+
+      // Add to DOM
+      document.body.appendChild(overlay);
+
+      // Store reference for close animation and max delay
+      this.currentOverlay = overlay;
+      this.maxAnimationDelay = maxDelay;
+
+      // Fade in background
+      requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+      });
+
+      // Initialize icons for the close button
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+
+      // Close on overlay click (anywhere except history items)
+      overlay.addEventListener('click', (e) => {
+        // Check if the clicked element is a history item or its child
+        const clickedHistoryItem = e.target.closest('.history-item');
+        const clickedCloseBtn = e.target.closest('.close-btn');
+
+        // Close if clicked outside history items OR on the close button
+        if (!clickedHistoryItem || clickedCloseBtn) {
+          this.closeHistoryWithAnimation();
+        }
+      });
+
+      // Resolve when all animations are complete
+      setTimeout(() => {
+        resolve();
+      }, maxDelay + 200); // Add small buffer for animation completion
     });
   }
 

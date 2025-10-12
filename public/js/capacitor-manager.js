@@ -200,8 +200,8 @@ class CapacitorManager {
   onNotificationReceived(notification) {
     console.log('Notification received:', notification);
     // Handle background notification received
-    // Refresh last notification display
-    this.app.sendNowManager.loadLastNotification();
+    // Refresh last notification display with retry logic for server processing
+    this.app.sendNowManager.loadLastNotification(3); // Retry up to 3 times
   }
 
   onNotificationTapped(notification) {
@@ -210,15 +210,14 @@ class CapacitorManager {
     // Clear notification badge when notification is tapped
     this.clearNotificationBadge();
 
+    // Refresh last notification display first
+    this.app.sendNowManager.loadLastNotification();
+
     // If the app was opened from a notification, show the history
     const data = notification.notification.data;
     if (data && data.sentAt) {
-      // Open history and highlight the specific notification
-      setTimeout(() => {
-        this.app.history.handleShowHistory().then(() => {
-          this.app.history.highlightNotification(data.sentAt);
-        });
-      }, 1000);
+      // Use notification handler for consistent navigation
+      this.app.notificationHandler.handleNotificationNavigation(data.sentAt);
     }
   }
 
