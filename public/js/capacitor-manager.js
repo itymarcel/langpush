@@ -28,6 +28,9 @@ class CapacitorManager {
         // Set up push notification listeners
         this.setupPushListeners();
 
+        // Set up app state listeners (for app resume events)
+        this.setupAppStateListeners();
+
         // Clear notification badge when app opens
         this.clearNotificationBadge();
 
@@ -68,6 +71,35 @@ class CapacitorManager {
       console.log('Push notification action performed: ', notification);
       this.onNotificationTapped(notification);
     });
+  }
+
+  setupAppStateListeners() {
+    if (typeof window.Capacitor === 'undefined' || !window.Capacitor.Plugins.App) return;
+
+    const { App } = window.Capacitor.Plugins;
+
+    // Listen for app state changes (especially resume from background)
+    App.addListener('appStateChange', (state) => {
+      console.log('📱 [Capacitor] App state changed:', state.isActive ? 'active' : 'background');
+
+      if (state.isActive) {
+        // App became active - inform notification handler
+        console.log('📱 [Capacitor] App became active, triggering visibility check');
+
+        // Simulate a visibility change event for the notification handler
+        // This ensures the handler's logic runs even on iOS
+        const event = new Event('visibilitychange');
+        document.dispatchEvent(event);
+
+        // Also refresh last notification if no pending navigation
+        if (!this.app.notificationHandler.pendingNotificationTimestamp) {
+          console.log('📱 [Capacitor] Refreshing last notification on app resume');
+          this.app.sendNowManager.loadLastNotification();
+        }
+      }
+    });
+
+    console.log('✅ [Capacitor] App state listeners set up');
   }
 
   async requestPermissions() {
@@ -210,14 +242,14 @@ class CapacitorManager {
     // Clear notification badge when notification is tapped
     this.clearNotificationBadge();
 
-    // Refresh last notification display first
-    this.app.sendNowManager.loadLastNotification();
-
-    // If the app was opened from a notification, show the history
+    // If the app was opened from a notification, show the history first
     const data = notification.notification.data;
     if (data && data.sentAt) {
-      // Use notification handler for consistent navigation
+      // Use notification handler for consistent navigation - this will handle loading last notification
       this.app.notificationHandler.handleNotificationNavigation(data.sentAt);
+    } else {
+      // If no sentAt data, just refresh the last notification display
+      this.app.sendNowManager.loadLastNotification();
     }
   }
 

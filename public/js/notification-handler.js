@@ -62,14 +62,15 @@ class NotificationHandler {
       console.log('App: Visibility changed to:', document.visibilityState);
 
       if (!wasVisible && this.isAppVisible) {
-        // App became visible again - refresh latest notification
-        this.app.sendNowManager.loadLastNotification();
-
         // Handle pending notification if exists
         if (this.pendingNotificationTimestamp) {
           console.log('App: App became visible with pending notification');
           this.handleNotificationNavigation(this.pendingNotificationTimestamp);
           this.pendingNotificationTimestamp = null;
+        } else {
+          // Only refresh latest notification if no pending navigation
+          console.log('App: App became visible, refreshing last notification');
+          this.app.sendNowManager.loadLastNotification();
         }
       }
     }, false);
@@ -129,6 +130,10 @@ class NotificationHandler {
   async handleNotificationNavigation(sentAtTimestamp) {
     console.log('App: handleNotificationNavigation called with:', sentAtTimestamp);
     try {
+      // First, refresh the last notification display to ensure it's up to date
+      console.log('App: Refreshing last notification before opening history...');
+      await this.app.sendNowManager.loadLastNotification();
+
       console.log('App: Opening history...');
       // Open history and wait for it to be fully loaded with animations complete
       await this.app.history.handleShowHistory();
