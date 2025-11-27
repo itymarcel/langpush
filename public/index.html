@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LANGPUSH</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <!-- Favicon for all browsers -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+  <!-- Apple touch icon -->
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#f9f9f9" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/popover.css" />
+</head>
+<body>
+  <button id="installBtn">
+    <i data-lucide="download" class="ios-icon"></i> Install app
+  </button>
+
+  <div id="main-container">
+    <div class="headline-container">
+      <h1 id="chickenBtn">
+        <!-- <svg width="22" viewBox="0 0 104 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M60 35C60 21.1929 48.8071 10 35 10C21.1929 10 10 21.1929 10 35C10 48.8071 21.1929 60 35 60V70C15.67 70 0 54.33 0 35C0 15.67 15.67 0 35 0C54.33 0 70 15.67 70 35C70 54.33 54.33 70 35 70V60C48.8071 60 60 48.8071 60 35Z" fill="#0000FF"/>
+          <path d="M94 35C94 21.1929 82.8071 10 69 10C55.1929 10 44 21.1929 44 35C44 48.8071 55.1929 60 69 60V70C49.67 70 34 54.33 34 35C34 15.67 49.67 0 69 0C88.33 0 104 15.67 104 35C104 54.33 88.33 70 69 70V60C82.8071 60 94 48.8071 94 35Z" fill="#0000FF"/>
+        </svg> -->
+        <svg width="22" viewBox="0 0 104 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M61 35C61 20.6406 49.3594 9 35 9C20.6406 9 9 20.6406 9 35C9 49.3594 20.6406 61 35 61V70C15.67 70 0 54.33 0 35C0 15.67 15.67 0 35 0C54.33 0 70 15.67 70 35C70 54.33 54.33 70 35 70V61C49.3594 61 61 49.3594 61 35Z" fill="#0000FF"/>
+          <path d="M95 35C95 20.6406 83.3594 9 69 9C54.6406 9 43 20.6406 43 35C43 49.3594 54.6406 61 69 61V70C49.67 70 34 54.33 34 35C34 15.67 49.67 0 69 0C88.33 0 104 15.67 104 35C104 54.33 88.33 70 69 70V61C83.3594 61 95 49.3594 95 35Z" fill="#0000FF"/>
+        </svg>
+
+
+
+        LANGPUSH
+      </h1>
+      <!-- <div id="github">
+        <a href='https://github.com/itymarcel/langpush' target='_blank'>
+          see on github
+        </a>
+      </div> -->
+    </div>
+
+    <div id="iosTip">
+      <div>For push notifications to work, this app needs to be added to the homescreen.</div>
+      <div id="iosTipAction">
+        <div>1: Tap <i data-lucide="share" class="ios-icon"></i> or <i data-lucide="ellipsis" class="ios-icon"></i> at the bottom of the screen</div>
+        <div>2: Then in the menu tap <i data-lucide="plus-square" class="ios-icon"></i> <b>Add to Home Screen</b></div>
+        <div class="swoosh-down"><i data-lucide="move-down" class="ios-icon" style="width: 50px; height: 50px; stroke-width: 1px;"></i></div>
+      </div>
+    </div>
+
+    <div id="iosThirdpartyTip" style="display: none;">
+      <div>You need to open this website in 🧭 Safari so you can add it to your homescreen.</div>
+      <div id="copyLinkBtn" onclick="copyLink()">
+        <i data-lucide="copy" class="ios-icon"></i> Copy link
+      </div>
+    </div>
+
+    <div id="language-container">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom:8px;">
+        <label for="language-select">
+          Choose language
+        </label>
+      </div>
+      <div class="selection-container">
+        <div class="language-select-container">
+          <select id="language-select" class="custom-select">
+            <option value="italian">🇮🇹 Italian</option>
+            <option value="spanish">🇪🇸 Spanish</option>
+            <option value="french">🇫🇷 French</option>
+            <option value="japanese">🇯🇵 Japanese</option>
+          </select>
+          <div class="language-loading" style="display: none;">
+            <i data-lucide="loader" class="ios-icon rotating"></i>
+          </div>
+        </div>
+        <div class="difficulty-select-container">
+          <select id="difficulty-select" class="custom-select">
+            <option value="easy">Easy</option>
+            <option value="medium">Med</option>
+          </select>
+          <div class="difficulty-loading" style="display: none;">
+            <i data-lucide="loader" class="ios-icon rotating"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="last-notification" style="display: none;">
+      <div class="last-notification-header">
+        <button id="historyBtn" style="display: none;" class="history-button">
+          <span class="history-normal-state">
+            <i data-lucide="circle-arrow-up" class="ios-icon" style="width: 18px; height: 18px; stroke-width:2px;"></i>
+          </span>
+          <span class="history-loading-state" style="display: none;">
+            <i data-lucide="loader" class="ios-icon rotating" style="padding:9px;"></i>
+          </span>
+        </button>
+      </div>
+      <div class="english"></div>
+      <div class="original">
+        <div class="reveal-text" style="display: none;">Reveal</div>
+        <div class="actual-text"></div>
+      </div>
+    </div>
+
+    <div class="history-send-container">
+      <button id="sendNow" style="display: none;">
+        <span class="send-state">
+          <i data-lucide="send" class="ios-icon"></i> Get One Now
+        </span>
+        <span class="sending-state" style="display: none;">
+          <i data-lucide="loader" class="ios-icon rotating"></i> Sending...
+        </span>
+        <span class="sent-state" style="display: none;">
+          <i data-lucide="check" class="ios-icon"></i> Sent!
+        </span>
+        <span class="failed-state" style="display: none;">
+          <i data-lucide="x" class="ios-icon"></i> Failed
+        </span>
+        <span class="cooldown-state" style="display: none;">
+          <i data-lucide="clock" class="ios-icon"></i><span class="text"> Wait 60s</span>
+        </span>
+      </button>
+    </div>
+
+    <button id="sub">
+      <span class="sub-state">
+        <i data-lucide="bell" class="ios-icon"></i> Subscribe
+      </span>
+      <span class="unsub-state" style="display: none;">
+        <i data-lucide="bell-off" class="ios-icon"></i> Unsubscribe
+      </span>
+      <span class="loading-state" style="display: none;">
+        <i data-lucide="loader" class="ios-icon rotating blue-text"></i>
+      </span>
+      <span class="unsupported-state" style="display: none;">
+        <i data-lucide="x-circle" class="ios-icon"></i> Push not supported
+      </span>
+    </button>
+
+    <!-- <div id="subscribe-info">
+      <div id="subscribed-message" style="display: none;">
+        Three hand picked <br/>
+        <span id="subscribed-language">Italian</span> ↔ English<br/>pairs
+        a day.
+      </div>
+      <div id="unsubscribed-message" style="display: none;">
+        Once subscribed, you'll receive <br/>
+        <b>three</b> notifications a day <br/>
+        with hand picked <b><span id="unsubscribed-language">Italian</span> ↔ English</b><br/>
+        phrase pairs (<span id="unsubscribed-difficulty">easy</span> level).
+      </div>
+    </div> -->
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/popover.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/capacitor-manager.js"></script>
+  <script src="/js/subscription-manager.js"></script>
+  <script src="/js/ui-controller.js"></script>
+  <script src="/js/preferences-manager.js"></script>
+  <script src="/js/notification-handler.js"></script>
+  <script src="/js/send-now-manager.js"></script>
+  <script src="/js/history.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/install.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+/**
+ * Lingua Push - Main Application JavaScript
+ */
+
+class LinguaPush {
+  constructor() {
+    // Wait for config to be loaded
+    this.config = window.AppConfig;
+
+    // Constants
+    this.CONSTANTS = {
+      ENDPOINTS: {
+        VAPID_KEY: this.config.getEndpointUrl('/vapidPublicKey'),
+        ADMIN_KEY: this.config.getEndpointUrl('/admin-key'),
+        SUBSCRIBE: this.config.getEndpointUrl('/subscribe'),
+        SUBSCRIBE_EXISTS: this.config.getEndpointUrl('/subscribe/exists'),
+        SUBSCRIBE_DIFFICULTY: this.config.getEndpointUrl('/subscribe/difficulty'),
+        SUBSCRIBE_LANGUAGE: this.config.getEndpointUrl('/subscribe/language'),
+        SUBSCRIBE_IOS: this.config.getEndpointUrl('/subscribe/ios'),
+        SUBSCRIBE_IOS_EXISTS: this.config.getEndpointUrl('/subscribe/ios/exists'),
+        ADMIN_SUBS: this.config.getEndpointUrl('/admin/subs'),
+        ADMIN_SEND_NOW: this.config.getEndpointUrl('/admin/send-now'),
+        LAST_NOTIFICATION: this.config.getEndpointUrl('/last-notification'),
+        NOTIFICATIONS: this.config.getEndpointUrl('/notifications'),
+        LIVE_RELOAD: this.config.getEndpointUrl('/live-reload')
+      },
+      SELECTORS: {
+        SUB_BUTTON: 'sub',
+        SEND_NOW_BUTTON: 'sendNow',
+        LANGUAGE_SELECT: 'language-select',
+        DIFFICULTY_SELECT: 'difficulty-select',
+        LANGUAGE_CONTAINER: 'language-container',
+        DIFFICULTY_CONTAINER: 'difficulty-container',
+        // SUBSCRIBE_INFO: 'subscribe-info',
+        CHICKEN_BTN: 'chickenBtn',
+        LAST_NOTIFICATION: '.last-notification',
+        LAST_NOTIFICATION_ORIGINAL: '.last-notification .original .actual-text',
+        LAST_NOTIFICATION_ENGLISH: '.last-notification .english',
+        HISTORY_BTN: 'historyBtn',
+      },
+      LANGUAGES: {
+        ITALIAN: 'italian',
+        SPANISH: 'spanish',
+        FRENCH: 'french',
+        JAPANESE: 'japanese'
+      },
+      COOLDOWN_DURATION: 3,
+    };
+
+    // Cache DOM elements
+    this.elements = {
+      subButton: document.getElementById(this.CONSTANTS.SELECTORS.SUB_BUTTON),
+      sendNowButton: document.getElementById(this.CONSTANTS.SELECTORS.SEND_NOW_BUTTON),
+      languageSelect: document.getElementById(this.CONSTANTS.SELECTORS.LANGUAGE_SELECT),
+      difficultySelect: document.getElementById(this.CONSTANTS.SELECTORS.DIFFICULTY_SELECT),
+      // subscribeInfo: document.getElementById(this.CONSTANTS.SELECTORS.SUBSCRIBE_INFO),
+      chickenBtn: document.getElementById(this.CONSTANTS.SELECTORS.CHICKEN_BTN),
+      lastNotification: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION),
+      lastNotificationOriginal: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ORIGINAL),
+      lastNotificationEnglish: document.querySelector(this.CONSTANTS.SELECTORS.LAST_NOTIFICATION_ENGLISH),
+      historyBtn: document.getElementById(this.CONSTANTS.SELECTORS.HISTORY_BTN)
+    };
+
+    // Initialize modules
+    this.subscriptionManager = new SubscriptionManager(this);
+    this.uiController = new UIController(this);
+    this.preferencesManager = new PreferencesManager(this);
+    this.notificationHandler = new NotificationHandler(this);
+    this.sendNowManager = new SendNowManager(this);
+    this.history = new NotificationHistory(this);
+    this.capacitorManager = new CapacitorManager(this);
+
+    this.init();
+  }
+
+  /**
+   * Initialize the application
+   */
+  init() {
+    this.setupEventListeners();
+    this.subscriptionManager.syncButton();
+    Utils.initializeIcons();
+    Utils.setupLiveReload(this.CONSTANTS.ENDPOINTS.LIVE_RELOAD);
+    Utils.initializeChickenPopover(this.elements.chickenBtn);
+    this.sendNowManager.loadLastNotification();
+    this.sendNowManager.checkCooldownOnLoad();
+    this.notificationHandler.checkForNotificationParameter();
+  }
+
+  /**
+   * Set up all event listeners
+   */
+  setupEventListeners() {
+    // Main subscription button
+    this.elements.subButton.addEventListener("click", () => this.subscriptionManager.handleSubscriptionToggle());
+
+    // Send Now button
+    this.elements.sendNowButton.addEventListener("click", () => this.sendNowManager.handleSendNow());
+
+    // Language selection change
+    this.elements.languageSelect.addEventListener("change", (e) => {
+      this.preferencesManager.updateLanguageDisplay(e.target.value);
+    });
+
+    // Difficulty selection change
+    this.elements.difficultySelect.addEventListener("change", (e) => {
+      this.preferencesManager.updateDifficultyDisplay(e.target.value);
+    });
+
+    // History button
+    if (this.elements.historyBtn) {
+      this.elements.historyBtn.addEventListener("click", () => this.history.handleShowHistory());
+    }
+
+    // Tap to refresh last notification
+    if (this.elements.lastNotification) {
+      this.elements.lastNotification.addEventListener("click", (e) => {
+        // Only refresh if not clicking on reveal or history button
+        if (!e.target.closest('.reveal-text') && !e.target.closest('.history-button')) {
+          this.sendNowManager.loadLastNotification();
+        }
+      });
+    }
+
+    // Icons initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      Utils.initializeIcons();
+    });
+  }
+}
+
+// Initialize the application when the DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  new LinguaPush();
+});
+
+// Global function for copying link (called from onclick in HTML)
+function copyLink() {
+  navigator.clipboard.writeText(window.location.href)
+    .then(() => alert("Link copied! Please paste into Safari."))
+    .catch(() => alert("Could not copy. Long-press the address bar and copy manually."));
+}
