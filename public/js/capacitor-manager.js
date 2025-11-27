@@ -86,16 +86,21 @@ class CapacitorManager {
         // App became active - inform notification handler
         console.log('📱 [Capacitor] App became active, triggering visibility check');
 
-        // Simulate a visibility change event for the notification handler
-        // This ensures the handler's logic runs even on iOS
-        const event = new Event('visibilitychange');
-        document.dispatchEvent(event);
+        // Give notification tap handler a chance to set pending navigation first
+        setTimeout(() => {
+          // Simulate a visibility change event for the notification handler
+          // This ensures the handler's logic runs even on iOS
+          const event = new Event('visibilitychange');
+          document.dispatchEvent(event);
 
-        // Also refresh last notification if no pending navigation
-        if (!this.app.notificationHandler.pendingNotificationTimestamp) {
-          console.log('📱 [Capacitor] Refreshing last notification on app resume');
-          this.app.sendNowManager.loadLastNotification();
-        }
+          // Also refresh last notification if no pending navigation
+          if (!this.app.notificationHandler.pendingNotificationTimestamp) {
+            console.log('📱 [Capacitor] Refreshing last notification on app resume (no pending navigation)');
+            this.app.sendNowManager.loadLastNotification();
+          } else {
+            console.log('📱 [Capacitor] Pending notification navigation detected, skipping automatic refresh');
+          }
+        }, 100); // Small delay to let notification tap handler set pending timestamp
       }
     });
 
@@ -237,7 +242,7 @@ class CapacitorManager {
   }
 
   onNotificationTapped(notification) {
-    console.log('Notification tapped:', notification);
+    console.log('📱 [Capacitor] Notification tapped:', notification);
 
     // Clear notification badge when notification is tapped
     this.clearNotificationBadge();
@@ -245,10 +250,15 @@ class CapacitorManager {
     // If the app was opened from a notification, show the history first
     const data = notification.notification.data;
     if (data && data.sentAt) {
-      // Use notification handler for consistent navigation - this will handle loading last notification
+      console.log('📱 [Capacitor] Setting pending notification for timestamp:', data.sentAt);
+      // Set pending notification in the handler so app state changes don't interfere
+      this.app.notificationHandler.pendingNotificationTimestamp = data.sentAt;
+
+      // Use notification handler for consistent navigation
       this.app.notificationHandler.handleNotificationNavigation(data.sentAt);
     } else {
       // If no sentAt data, just refresh the last notification display
+      console.log('📱 [Capacitor] No sentAt data, refreshing last notification');
       this.app.sendNowManager.loadLastNotification();
     }
   }

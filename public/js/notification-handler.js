@@ -62,16 +62,23 @@ class NotificationHandler {
       console.log('App: Visibility changed to:', document.visibilityState);
 
       if (!wasVisible && this.isAppVisible) {
-        // Handle pending notification if exists
-        if (this.pendingNotificationTimestamp) {
-          console.log('App: App became visible with pending notification');
-          this.handleNotificationNavigation(this.pendingNotificationTimestamp);
-          this.pendingNotificationTimestamp = null;
-        } else {
-          // Only refresh latest notification if no pending navigation
-          console.log('App: App became visible, refreshing last notification');
-          this.app.sendNowManager.loadLastNotification();
-        }
+        // Small delay to allow notification tap handler to set pending timestamp
+        setTimeout(() => {
+          // Handle pending notification if exists
+          if (this.pendingNotificationTimestamp) {
+            console.log('App: App became visible with pending notification');
+            // Only handle if not already being handled
+            if (this.pendingNotificationTimestamp !== 'handling') {
+              const timestamp = this.pendingNotificationTimestamp;
+              this.pendingNotificationTimestamp = 'handling'; // Mark as being handled
+              this.handleNotificationNavigation(timestamp);
+            }
+          } else {
+            // Only refresh latest notification if no pending navigation
+            console.log('App: App became visible, refreshing last notification');
+            this.app.sendNowManager.loadLastNotification();
+          }
+        }, 150);
       }
     }, false);
 
@@ -82,10 +89,15 @@ class NotificationHandler {
 
       console.log('App: Window focus gained');
 
-      if (!wasFocused && this.pendingNotificationTimestamp) {
-        console.log('App: App gained focus with pending notification');
-        this.handleNotificationNavigation(this.pendingNotificationTimestamp);
-        this.pendingNotificationTimestamp = null;
+      if (!wasFocused) {
+        setTimeout(() => {
+          if (this.pendingNotificationTimestamp && this.pendingNotificationTimestamp !== 'handling') {
+            console.log('App: App gained focus with pending notification');
+            const timestamp = this.pendingNotificationTimestamp;
+            this.pendingNotificationTimestamp = 'handling';
+            this.handleNotificationNavigation(timestamp);
+          }
+        }, 150);
       }
     }, false);
 
@@ -98,13 +110,14 @@ class NotificationHandler {
     window.addEventListener('pageshow', (event) => {
       console.log('App: Page show event, persisted:', event.persisted);
 
-      if (this.pendingNotificationTimestamp) {
-        console.log('App: Page show with pending notification');
-        setTimeout(() => {
-          this.handleNotificationNavigation(this.pendingNotificationTimestamp);
-          this.pendingNotificationTimestamp = null;
-        }, 100);
-      }
+      setTimeout(() => {
+        if (this.pendingNotificationTimestamp && this.pendingNotificationTimestamp !== 'handling') {
+          console.log('App: Page show with pending notification');
+          const timestamp = this.pendingNotificationTimestamp;
+          this.pendingNotificationTimestamp = 'handling';
+          this.handleNotificationNavigation(timestamp);
+        }
+      }, 150);
     }, false);
   }
 
@@ -134,6 +147,10 @@ class NotificationHandler {
       console.log('App: Refreshing last notification before opening history...');
       await this.app.sendNowManager.loadLastNotification();
 
+      // Small delay to ensure DOM has updated with new notification text
+      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log('App: Notification loaded and UI updated');
+
       console.log('App: Opening history...');
       // Open history and wait for it to be fully loaded with animations complete
       await this.app.history.handleShowHistory();
@@ -142,8 +159,14 @@ class NotificationHandler {
       // Now highlight the notification immediately since history is ready
       this.app.history.highlightNotification(sentAtTimestamp);
 
+      // Clear the pending notification after successful navigation
+      this.pendingNotificationTimestamp = null;
+      console.log('App: Navigation completed, cleared pending notification');
+
     } catch (error) {
       console.error('Failed to navigate to notification:', error);
+      // Clear pending notification even on error
+      this.pendingNotificationTimestamp = null;
     }
   }
 }
