@@ -1,13 +1,9 @@
 import express from "express";
 import bodyParser from "body-parser";
 import pkg from 'pg'
-import webpush from "web-push";
 import apn from "node-apn";
 import { randomPhraseNoRepeat } from "./phrases.js";
 import { config } from 'dotenv';
-import https from 'https';
-import fs from 'fs';
-import chokidar from 'chokidar';
 
 config();
 
@@ -135,10 +131,6 @@ try {
   process.exit(1);
 }
 
-// Web Push (PWA) setup
-const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, CONTACT_EMAIL } = process.env;
-webpush.setVapidDetails(`mailto:${CONTACT_EMAIL}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-
 // APNs (iOS) setup
 let apnProvider = null;
 if (process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID && process.env.APNS_KEY_PATH) {
@@ -184,38 +176,22 @@ if (process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID && process.env.APNS_KEY_
   console.log('⚠️ APNs credentials not configured. iOS push notifications will be disabled.');
 }
 
-app.get("/vapidPublicKey", (req, res) => {
-  res.send(VAPID_PUBLIC_KEY);
-});
-
 app.get("/admin-key", (req, res) => {
   res.send(process.env.ADMIN_KEY);
 });
 
-// Get last notification for a subscription
+// Get last notification for a subscription (iOS only)
 app.get("/last-notification", async (req, res) => {
-  const { endpoint, iosToken } = req.query;
+  const { iosToken } = req.query;
 
-  if (!endpoint && !iosToken) {
-    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  if (!iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing iosToken" });
   }
 
   try {
-    let query, params;
-
-    if (iosToken) {
-      // iOS token lookup
-      console.log('📱 [Last Notification] Using iOS token lookup:', iosToken);
-      query = "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
-      params = [iosToken];
-    } else {
-      // Web endpoint lookup
-      console.log('🌐 [Last Notification] Using web endpoint lookup:', endpoint);
-      query = "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
-      params = [endpoint];
-    }
-
-    const { rows } = await pool.query(query, params);
+    console.log('📱 [Last Notification] Using iOS token lookup:', iosToken);
+    const query = "SELECT last_phrase_original, last_phrase_english, last_phrase_language, last_notification_sent_at FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
+    const { rows } = await pool.query(query, [iosToken]);
 
     if (rows.length === 0) {
       console.log('❌ [Last Notification] Subscription not found');
@@ -243,44 +219,25 @@ app.get("/last-notification", async (req, res) => {
   }
 });
 
-// Get notification history for a subscription
+// Get notification history for a subscription (iOS only)
 app.get("/notifications", async (req, res) => {
-  const { endpoint, iosToken, limit = 10 } = req.query;
+  const { iosToken, limit = 10 } = req.query;
 
-  if (!endpoint && !iosToken) {
-    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  if (!iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing iosToken" });
   }
 
   try {
-    let query, params;
-
-    if (iosToken) {
-      // iOS token lookup
-      query = `
-        SELECT n.phrase_original, n.phrase_english, n.language, n.difficulty, n.sent_at
-        FROM notifications n
-        JOIN subs s ON n.subscription_id = s.id
-        WHERE s.ios_token = $1
-        AND (s.deactivated = FALSE OR s.deactivated IS NULL)
-        ORDER BY n.sent_at DESC
-        LIMIT $2
-      `;
-      params = [iosToken, parseInt(limit)];
-    } else {
-      // Web endpoint lookup
-      query = `
-        SELECT n.phrase_original, n.phrase_english, n.language, n.difficulty, n.sent_at
-        FROM notifications n
-        JOIN subs s ON n.subscription_id = s.id
-        WHERE s.data->>'endpoint' = $1
-        AND (s.deactivated = FALSE OR s.deactivated IS NULL)
-        ORDER BY n.sent_at DESC
-        LIMIT $2
-      `;
-      params = [endpoint, parseInt(limit)];
-    }
-
-    const { rows } = await pool.query(query, params);
+    const query = `
+      SELECT n.phrase_original, n.phrase_english, n.language, n.difficulty, n.sent_at
+      FROM notifications n
+      JOIN subs s ON n.subscription_id = s.id
+      WHERE s.ios_token = $1
+      AND (s.deactivated = FALSE OR s.deactivated IS NULL)
+      ORDER BY n.sent_at DESC
+      LIMIT $2
+    `;
+    const { rows } = await pool.query(query, [iosToken, parseInt(limit)]);
 
     res.json({
       ok: true,
@@ -322,80 +279,23 @@ app.get("/admin/subs", guard, async (req, res) => {
   });
 });
 
-
-app.post("/subscribe", async (req, res) => {
-  const sub = req.body;
-  const endpoint = sub?.endpoint;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
-
-  try {
-    // Extract difficulty from the request body, default to 'easy'
-    const difficulty = sub.difficulty || 'easy';
-
-    // Check if subscription already exists (active or deactivated)
-    const { rows: existing } = await pool.query("SELECT id, deactivated FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
-
-    if (existing.length > 0) {
-      // Reactivate existing subscription and update data and difficulty
-      await pool.query(
-        "UPDATE subs SET data = $1, difficulty = $2, platform = 'web', deactivated = FALSE WHERE data->>'endpoint' = $3",
-        [JSON.stringify(sub), difficulty, endpoint]
-      );
-    } else {
-      // Create new subscription
-      await pool.query("INSERT INTO subs (data, difficulty, platform, deactivated) VALUES ($1, $2, 'web', FALSE)", [JSON.stringify(sub), difficulty]);
-    }
-
-    res.json({ ok: true });
-  } catch (error) {
-    console.error("Subscribe error:", error);
-    res.status(500).json({ ok: false, error: "Database error" });
-  }
-});
-
-// 1) check if a subscription exists (by endpoint) - exclude deactivated
-app.get("/subscribe/exists", async (req, res) => {
-  const endpoint = req.query.endpoint;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
-  const { rows } = await pool.query("SELECT 1 FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL) LIMIT 1", [endpoint]);
-  res.json({ ok: true, exists: rows.length > 0 });
-});
-
-// 2) deactivate subscription (by endpoint) - soft delete
-app.delete("/subscribe", async (req, res) => {
-  const endpoint = req.body?.endpoint || req.query.endpoint;
-  if (!endpoint) return res.status(400).json({ ok: false, error: "Missing endpoint" });
-  const r = await pool.query("UPDATE subs SET deactivated = TRUE WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)", [endpoint]);
-  res.json({ ok: true, deactivated: r.rowCount });
-});
-
-// 3) update difficulty for existing subscription
+// Update difficulty for existing subscription (iOS only)
 app.patch("/subscribe/difficulty", async (req, res) => {
-  const { endpoint, iosToken, difficulty } = req.body;
+  const { iosToken, difficulty } = req.body;
 
-  if (!endpoint && !iosToken) {
-    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  if (!iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing iosToken" });
   }
   if (!difficulty || !['easy', 'medium'].includes(difficulty)) {
     return res.status(400).json({ ok: false, error: "Invalid difficulty. Must be 'easy' or 'medium'" });
   }
 
   try {
-    let query, params;
-
-    if (iosToken) {
-      // iOS token lookup
-      console.log('📱 [Difficulty Update] Using iOS token:', iosToken, 'difficulty:', difficulty);
-      query = "UPDATE subs SET difficulty = $1 WHERE ios_token = $2 AND (deactivated = FALSE OR deactivated IS NULL)";
-      params = [difficulty, iosToken];
-    } else {
-      // Web endpoint lookup
-      console.log('🌐 [Difficulty Update] Using web endpoint:', endpoint, 'difficulty:', difficulty);
-      query = "UPDATE subs SET difficulty = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)";
-      params = [difficulty, endpoint];
-    }
-
-    const r = await pool.query(query, params);
+    console.log('📱 [Difficulty Update] Using iOS token:', iosToken, 'difficulty:', difficulty);
+    const r = await pool.query(
+      "UPDATE subs SET difficulty = $1 WHERE ios_token = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
+      [difficulty, iosToken]
+    );
 
     if (r.rowCount === 0) {
       console.log('❌ [Difficulty Update] Active subscription not found');
@@ -410,60 +310,31 @@ app.patch("/subscribe/difficulty", async (req, res) => {
   }
 });
 
-// 4) update language for existing subscription
+// Update language for existing subscription (iOS only)
 app.patch("/subscribe/language", async (req, res) => {
-  const { endpoint, iosToken, language } = req.body;
+  const { iosToken, language } = req.body;
 
-  if (!endpoint && !iosToken) {
-    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  if (!iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing iosToken" });
   }
   if (!language || !['italian', 'spanish', 'french', 'japanese'].includes(language)) {
     return res.status(400).json({ ok: false, error: "Invalid language. Must be 'italian', 'spanish', 'french', or 'japanese'" });
   }
 
   try {
-    if (iosToken) {
-      // iOS token lookup - language is stored in dedicated column
-      console.log('📱 [Language Update] Using iOS token:', iosToken, 'language:', language);
-      const r = await pool.query(
-        "UPDATE subs SET language = $1 WHERE ios_token = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
-        [language, iosToken]
-      );
+    console.log('📱 [Language Update] Using iOS token:', iosToken, 'language:', language);
+    const r = await pool.query(
+      "UPDATE subs SET language = $1 WHERE ios_token = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
+      [language, iosToken]
+    );
 
-      if (r.rowCount === 0) {
-        console.log('❌ [Language Update] Active iOS subscription not found');
-        return res.status(404).json({ ok: false, error: "Active subscription not found" });
-      }
-
-      console.log('✅ [Language Update] Successfully updated iOS language for', r.rowCount, 'subscription(s)');
-      res.json({ ok: true, updated: r.rowCount });
-    } else {
-      // Web endpoint lookup - language is stored in data JSON
-      console.log('🌐 [Language Update] Using web endpoint:', endpoint, 'language:', language);
-
-      // Get current subscription data
-      const { rows: current } = await pool.query(
-        "SELECT data FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)",
-        [endpoint]
-      );
-
-      if (current.length === 0) {
-        console.log('❌ [Language Update] Active web subscription not found');
-        return res.status(404).json({ ok: false, error: "Active subscription not found" });
-      }
-
-      // Update the language in the subscription data
-      const subscriptionData = typeof current[0].data === "string" ? JSON.parse(current[0].data) : current[0].data;
-      subscriptionData.language = language;
-
-      const r = await pool.query(
-        "UPDATE subs SET data = $1 WHERE data->>'endpoint' = $2 AND (deactivated = FALSE OR deactivated IS NULL)",
-        [JSON.stringify(subscriptionData), endpoint]
-      );
-
-      console.log('✅ [Language Update] Successfully updated web language for', r.rowCount, 'subscription(s)');
-      res.json({ ok: true, updated: r.rowCount });
+    if (r.rowCount === 0) {
+      console.log('❌ [Language Update] Active iOS subscription not found');
+      return res.status(404).json({ ok: false, error: "Active subscription not found" });
     }
+
+    console.log('✅ [Language Update] Successfully updated iOS language for', r.rowCount, 'subscription(s)');
+    res.json({ ok: true, updated: r.rowCount });
   } catch (error) {
     console.error("❌ [Language Update] Database error:", error);
     res.status(500).json({ ok: false, error: "Database error" });
@@ -582,49 +453,6 @@ app.delete("/subscribe/ios", async (req, res) => {
   }
 });
 
-// Helper function to create notification payload based on language and phrase
-function createNotificationPayload(language, phrase, includeClickTracking = true) {
-  const languageConfig = {
-    spanish: {
-      title: 'New Spanish Phrase',
-      flag: '🇪🇸',
-      phraseKey: 'es'
-    },
-    french: {
-      title: 'New French Phrase',
-      flag: '🇫🇷',
-      phraseKey: 'fr'
-    },
-    japanese: {
-      title: 'New Japanese Phrase',
-      flag: '🇯🇵',
-      phraseKey: 'ja'
-    },
-    italian: {
-      title: 'New Italian Phrase',
-      flag: '🇮🇹',
-      phraseKey: 'it'
-    }
-  };
-
-  const config = languageConfig[language] || languageConfig.italian;
-  const payload = {
-    title: `Translate to ${config.flag} ${language.charAt(0).toUpperCase() + language.slice(1)}`,
-    body: `${phrase.en}`,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png'
-  };
-
-  // Add timestamp for click tracking (for new notifications)
-  if (includeClickTracking) {
-    payload.data = {
-      sentAt: new Date().toISOString()
-    };
-  }
-
-  return JSON.stringify(payload);
-}
-
 // Helper function to get the original phrase text for database storage
 function getOriginalPhraseText(language, phrase) {
   const phraseKeys = {
@@ -637,22 +465,14 @@ function getOriginalPhraseText(language, phrase) {
   return phrase[key];
 }
 
-// Helper function to send push notification to a single subscription (Web or iOS)
+// Helper function to send push notification to a single subscription (iOS only)
 async function sendPushToSubscription(subscriptionRow, phrase, difficulty = 'easy') {
-  const sub = typeof subscriptionRow.data === "string" ? JSON.parse(subscriptionRow.data) : subscriptionRow.data;
-  const language = sub.language || 'italian';
-  const platform = subscriptionRow.platform || 'web';
-
+  const language = subscriptionRow.language || 'italian';
   const originalText = getOriginalPhraseText(language, phrase);
 
   try {
-    if (platform === 'ios') {
-      // Send iOS push notification via APNs
-      await sendIOSPushNotification(subscriptionRow, sub, phrase, language, originalText);
-    } else {
-      // Send web push notification (default for PWA)
-      await sendWebPushNotification(sub, phrase, language);
-    }
+    // Send iOS push notification via APNs
+    await sendIOSPushNotification(subscriptionRow, phrase, language, originalText);
 
     // Update last notification info
     await pool.query(
@@ -666,14 +486,14 @@ async function sendPushToSubscription(subscriptionRow, phrase, difficulty = 'eas
       [subscriptionRow.id, originalText, phrase.en, language, difficulty]
     );
 
-    console.log(`✅ ${platform.toUpperCase()} push sent successfully to subscription ${subscriptionRow.id}`);
+    console.log(`✅ iOS push sent successfully to subscription ${subscriptionRow.id}`);
 
   } catch (error) {
-    console.error(`❌ Failed to send ${platform} push to subscription ${subscriptionRow.id}:`, error);
+    console.error(`❌ Failed to send iOS push to subscription ${subscriptionRow.id}:`, error);
 
     // If it's a 410 or 404 error (subscription no longer valid), deactivate it
     if (error.statusCode === 410 || error.statusCode === 404) {
-      console.log(`🗑️ Deactivating invalid ${platform} subscription ${subscriptionRow.id}`);
+      console.log(`🗑️ Deactivating invalid iOS subscription ${subscriptionRow.id}`);
       await pool.query("UPDATE subs SET deactivated = TRUE WHERE id = $1", [subscriptionRow.id]);
     }
 
@@ -681,21 +501,8 @@ async function sendPushToSubscription(subscriptionRow, phrase, difficulty = 'eas
   }
 }
 
-// Send web push notification (existing PWA logic)
-async function sendWebPushNotification(sub, phrase, language) {
-  const payload = createNotificationPayload(language, phrase);
-
-  // Create clean subscription object without our custom language field
-  const cleanSub = {
-    endpoint: sub.endpoint,
-    keys: sub.keys
-  };
-
-  await webpush.sendNotification(cleanSub, payload);
-}
-
 // Send iOS push notification via APNs
-async function sendIOSPushNotification(subscriptionRow, sub, phrase, language, originalText) {
+async function sendIOSPushNotification(subscriptionRow, phrase, language, originalText) {
   if (!apnProvider) {
     throw new Error('APNs provider not configured. Cannot send iOS notifications.');
   }
@@ -748,26 +555,14 @@ async function sendIOSPushNotification(subscriptionRow, sub, phrase, language, o
 }
 
 app.post("/admin/broadcast", guard, async (_req, res) => {
-  const { rows } = await pool.query("SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE deactivated = FALSE OR deactivated IS NULL");
+  const { rows } = await pool.query("SELECT id, difficulty, language, ios_token FROM subs WHERE platform = 'ios' AND (deactivated = FALSE OR deactivated IS NULL)");
 
   let sent = 0;
   let failed = 0;
   let phrases = {};
 
   for (const row of rows) {
-    const platform = row.platform || 'web';
-    let language, sub;
-
-    if (platform === 'ios') {
-      // For iOS, language is stored directly in the language column
-      language = row.language || 'italian';
-      sub = null; // iOS doesn't use the data column for subscription info
-    } else {
-      // For web, language is stored in the data JSON
-      sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
-      language = sub.language || 'italian';
-    }
-
+    const language = row.language || 'italian';
     const difficulty = row.difficulty || 'easy';
 
     // Generate phrase for this language+difficulty combination if we haven't already
@@ -793,51 +588,28 @@ app.post("/admin/broadcast", guard, async (_req, res) => {
 });
 
 app.post("/admin/send-now", guard, async (req, res) => {
-  const { endpoint, iosToken, appIsOpen } = req.body;
+  const { iosToken, appIsOpen } = req.body;
 
-  if (!endpoint && !iosToken) {
-    return res.status(400).json({ ok: false, error: "Missing endpoint or iosToken" });
+  if (!iosToken) {
+    return res.status(400).json({ ok: false, error: "Missing iosToken" });
   }
 
   try {
-    let query, params;
-
-    if (iosToken) {
-      // iOS token lookup
-      console.log('📱 [Send Now] Using iOS token:', iosToken, 'appIsOpen:', appIsOpen);
-      query = "SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
-      params = [iosToken];
-    } else {
-      // Web endpoint lookup
-      console.log('🌐 [Send Now] Using web endpoint:', endpoint, 'appIsOpen:', appIsOpen);
-      query = "SELECT id, data, created_at, difficulty, platform, language, ios_token FROM subs WHERE data->>'endpoint' = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
-      params = [endpoint];
-    }
+    console.log('📱 [Send Now] Using iOS token:', iosToken, 'appIsOpen:', appIsOpen);
+    const query = "SELECT id, difficulty, language, ios_token FROM subs WHERE ios_token = $1 AND (deactivated = FALSE OR deactivated IS NULL)";
 
     // Find the subscription - exclude deactivated
-    const { rows } = await pool.query(query, params);
+    const { rows } = await pool.query(query, [iosToken]);
     if (rows.length === 0) {
       console.log('❌ [Send Now] Subscription not found or deactivated');
       return res.status(404).json({ ok: false, error: "Subscription not found or deactivated" });
     }
 
     const row = rows[0];
-    const platform = row.platform || 'web';
-    let language, sub;
-
-    if (platform === 'ios') {
-      // For iOS, language is stored directly in the language column
-      language = row.language || 'italian';
-      sub = null; // iOS doesn't use the data column for subscription info
-      console.log('📱 [Send Now] iOS subscription found, language:', language);
-    } else {
-      // For web, language is stored in the data JSON
-      sub = typeof row.data === "string" ? JSON.parse(row.data) : row.data;
-      language = sub.language || 'italian';
-      console.log('🌐 [Send Now] Web subscription found, language:', language);
-    }
-
+    const language = row.language || 'italian';
     const difficulty = row.difficulty || 'easy';
+
+    console.log('📱 [Send Now] iOS subscription found, language:', language);
 
     // Generate a phrase for this user's language and difficulty
     console.log('🎲 [Send Now] Generating phrase for language:', language, 'difficulty:', difficulty);
@@ -875,88 +647,15 @@ app.post("/admin/send-now", guard, async (req, res) => {
 
     // Clean up invalid subscriptions
     if (error.statusCode === 410 || error.statusCode === 404) {
-      if (endpoint) {
-        await pool.query("DELETE FROM subs WHERE data->>'endpoint' = $1", [endpoint]);
-      } else if (iosToken) {
-        await pool.query("DELETE FROM subs WHERE ios_token = $1", [iosToken]);
-      }
+      await pool.query("DELETE FROM subs WHERE ios_token = $1", [iosToken]);
     }
 
     res.status(500).json({ ok: false, error: "Failed to send notification" });
   }
 });
 
-// Live reload for development
-let clients = [];
-if (process.env.NODE_ENV !== 'production') {
-  app.get('/live-reload', (req, res) => {
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
-    });
-
-    clients.push(res);
-
-    req.on('close', () => {
-      clients = clients.filter(client => client !== res);
-    });
-  });
-
-  // Watch for file changes in public directory
-  const watcher = chokidar.watch('./public', {ignored: /^\./, persistent: true});
-  watcher.on('change', () => {
-    clients.forEach(client => {
-      client.write('data: reload\n\n');
-    });
-  });
-}
-
-// serve static site with proper cache headers
-app.use(express.static("public", {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    }
-
-    else if (path.endsWith('.js') || path.endsWith('.css')) {
-      res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate'); // 5 minutes
-    }
-
-    else if (path.endsWith('.webmanifest') || path.endsWith('sw.js')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    } else if (path.endsWith('.js') || path.endsWith('.css')) {
-      res.setHeader('Cache-Control', 'public, max-age=604800'); // 1 week
-    }
-  }
-}))
-
 const port = process.env.PORT || 3000;
 const isProduction = process.env.ENVIRONMENT === 'production';
 const host = isProduction ? '0.0.0.0' : 'localhost';
 
-// In production, when HTTPS is disabled, or when no certs exist, use HTTP only
-if (isProduction || process.env.DISABLE_HTTPS === 'true') {
-  app.listen(port, host, () => console.log(`Server running on http://${host}:${port}`));
-} else {
-  // Try to use HTTPS in development if certificates exist
-  try {
-    const options = {
-      key: fs.readFileSync('./localhost+2-key.pem'),
-      cert: fs.readFileSync('./localhost+2.pem')
-    };
-    https.createServer(options, app).listen(port, host, () => {
-      console.log(`Server running on https://${host}:${port}`);
-    });
-  } catch (err) {
-    // Fallback to HTTP if certificates don't exist
-    app.listen(port, host, () => {
-      console.log(`Server running on http://${host}:${port} (no HTTPS certificates found)`);
-    });
-  }
-}
+app.listen(port, host, () => console.log(`Server running on http://${host}:${port}`));
