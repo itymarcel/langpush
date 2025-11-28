@@ -63,6 +63,7 @@ class DevTools {
         <div class="dev-section">
           <h3>Mock Data</h3>
           <button class="dev-btn" id="devShowNotification">Show Mock Notification</button>
+          <button class="dev-btn" id="devShowNotificationUnrevealed">Show Unrevealed Notification</button>
           <button class="dev-btn" id="devShowHistory">Show Mock History</button>
         </div>
         <div class="dev-section">
@@ -104,6 +105,11 @@ class DevTools {
     // Show mock notification
     document.getElementById('devShowNotification').addEventListener('click', () => {
       this.showMockNotification();
+    });
+
+    // Show mock notification (unrevealed)
+    document.getElementById('devShowNotificationUnrevealed').addEventListener('click', () => {
+      this.showMockNotificationUnrevealed();
     });
 
     // Show mock history
@@ -180,6 +186,47 @@ class DevTools {
 
     const currentLanguage = this.app.elements.languageSelect.value;
     const notification = mockNotifications[currentLanguage];
+
+    this.app.sendNowManager.displayLastNotification(
+      notification.original,
+      notification.english,
+      notification.language,
+      Date.now()
+    );
+  }
+
+  /**
+   * Show mock notification in unrevealed state (with reveal mechanism)
+   */
+  showMockNotificationUnrevealed() {
+    const mockNotifications = {
+      italian: {
+        original: "Come stai this is a bit longer so we can see how it looks in two?",
+        english: "How are you?",
+        language: "italian"
+      },
+      spanish: {
+        original: "¿Qué tal?",
+        english: "How's it going?",
+        language: "spanish"
+      },
+      french: {
+        original: "Comment ça va ?",
+        english: "How are you?",
+        language: "french"
+      },
+      japanese: {
+        original: "元気ですか？ (Genki desu ka?)",
+        english: "How are you?",
+        language: "japanese"
+      }
+    };
+
+    const currentLanguage = this.app.elements.languageSelect.value;
+    const notification = mockNotifications[currentLanguage];
+
+    // Set the flag to trigger reveal mechanism
+    this.app.sendNowManager.waitingForFreshNotification = true;
 
     this.app.sendNowManager.displayLastNotification(
       notification.original,
