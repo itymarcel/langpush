@@ -163,7 +163,7 @@ class DevTools {
   showMockNotification() {
     const mockNotifications = {
       italian: {
-        original: "Come stai this is a bit longer so we can see how it looks in two?",
+        original: "Come stai?",
         english: "How are you?",
         language: "italian"
       },
@@ -201,7 +201,7 @@ class DevTools {
   showMockNotificationUnrevealed() {
     const mockNotifications = {
       italian: {
-        original: "Come stai this is a bit longer so we can see how it looks in two?",
+        original: "Come stai?",
         english: "How are you?",
         language: "italian"
       },
@@ -286,13 +286,14 @@ class DevTools {
    */
   showAllElements() {
     // Show all major elements
+    this.app.elements.subButton.style.display = 'flex';
     this.app.elements.sendNowButton.style.display = 'flex';
     if (this.app.elements.historyBtn) this.app.elements.historyBtn.style.display = 'flex';
 
     // Show notification
     this.showMockNotification();
 
-    // Set to unsubscribed state
+    // Set to unsubscribed state (showing unsubscribe button)
     const subState = this.app.elements.subButton.querySelector('.sub-state');
     const unsubState = this.app.elements.subButton.querySelector('.unsub-state');
     subState.style.display = 'none';

@@ -55,7 +55,7 @@ class Utils {
   static initializeChickenPopover(chickenBtn) {
     if (chickenBtn) {
       const popoverContent = `
-        <h3>Daily Language Pairs</h3>
+        <h3>langpush: Daily Language Pairs</h3>
         <p>Subscribing will send you a push notification 3 x times a day with a language pair of your choice.</p>
       `;
 

@@ -43,11 +43,11 @@ body {
   flex-direction: column;
   gap: 5px;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
 }
 
 h1 {
-  font-size: 14px;
+  font-size: 12px;
   color: rgba(0, 0, 255, 1);
   font-weight: 800;
   margin: 0;
@@ -111,7 +111,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   margin-bottom: 40px;
 }
@@ -180,7 +180,8 @@ h1 {
 }
 
 .last-notification .reveal-text {
-  color: rgba(0, 0, 255, 0.7);
+  color: rgba(0, 0, 255, 1);
+  transform: scale(0.777);
   user-select: none;
 }
 
@@ -213,6 +214,7 @@ h1 {
 
 #sub.outline {
   background-color: transparent;
+  border-style: dotted;
   color: #0000ff;
 }
 
