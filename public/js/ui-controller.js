@@ -161,7 +161,7 @@ class UIController {
 
     // Update label text
     if (languageLabel) {
-      languageLabel.textContent = isSubscribed ? "You are subscribed to" : "Choose language";
+      languageLabel.textContent = isSubscribed ? "You are subscribed to" : "Language";
     }
     if (difficultyLabel) {
       difficultyLabel.textContent = isSubscribed ? "Difficulty level" : "Choose difficulty";

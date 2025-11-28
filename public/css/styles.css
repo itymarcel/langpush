@@ -8,7 +8,7 @@
 }
 
 html, body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'TikTok Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -43,7 +43,7 @@ body {
   flex-direction: column;
   gap: 5px;
   align-items: center;
-  margin-bottom: 3rem;
+  margin-bottom: 3.5rem;
 }
 
 h1 {
@@ -111,7 +111,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   margin-bottom: 40px;
 }
@@ -214,7 +214,7 @@ h1 {
 
 #sub.outline {
   background-color: transparent;
-  border-style: dotted;
+  border-color: rgba(0, 0, 255, 0);
   color: #0000ff;
 }
 
@@ -261,7 +261,7 @@ h1 {
   border-bottom-left-radius: 400px;
 }
 .custom-select {
-  border: 2px solid #0000FF;
+  border: 2px solid rgba(0, 0, 255, 0.1);
   padding: 10px 20px;
   color: rgba(0, 0, 255, 1);
   font-size: 14px;
@@ -274,7 +274,7 @@ h1 {
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
   font-weight: 600;
-  background: rgba(0, 0, 255, 0.01) !important;
+  background: rgba(0, 0, 255, 0) !important;
 }
 
 /* Extra Safari arrow removal */
@@ -318,7 +318,7 @@ h1 {
   position:relative;
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
 }
 
 .chicken-popover {
@@ -341,7 +341,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  max-width: 80vw;
+  max-width: 85vw;
 }
 
 .speak-button {
@@ -364,7 +364,7 @@ h1 {
   pointer-events: none;
 }
 
-.speak-button:active {
+.speak-button:active, .history-button:active {
   background: rgba(0, 0, 0, 0.1);
   transform: scale(0.95);
 }

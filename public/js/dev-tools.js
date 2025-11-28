@@ -76,6 +76,9 @@ class DevTools {
 
     document.body.appendChild(this.devPanel);
     this.attachDevPanelListeners();
+
+    // Automatically show all elements when dev panel opens
+    this.showAllElements();
   }
 
   /**
@@ -163,7 +166,7 @@ class DevTools {
   showMockNotification() {
     const mockNotifications = {
       italian: {
-        original: "Come stai?",
+        original: "Come stai this one is a bit longer okay?",
         english: "How are you?",
         language: "italian"
       },
@@ -201,7 +204,7 @@ class DevTools {
   showMockNotificationUnrevealed() {
     const mockNotifications = {
       italian: {
-        original: "Come stai?",
+        original: "Come stai this is a bit longer okay?",
         english: "How are you?",
         language: "italian"
       },
@@ -289,6 +292,10 @@ class DevTools {
     this.app.elements.subButton.style.display = 'flex';
     this.app.elements.sendNowButton.style.display = 'flex';
     if (this.app.elements.historyBtn) this.app.elements.historyBtn.style.display = 'flex';
+
+    // Show language select container
+    const languageContainer = document.getElementById('language-container');
+    if (languageContainer) languageContainer.style.display = 'block';
 
     // Show notification
     this.showMockNotification();
