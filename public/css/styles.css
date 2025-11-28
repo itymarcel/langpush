@@ -43,7 +43,7 @@ body {
   flex-direction: column;
   gap: 5px;
   align-items: center;
-  margin-bottom: 3.5rem;
+  margin-bottom: 1.5rem;
 }
 
 h1 {
@@ -113,7 +113,7 @@ h1 {
   gap: 1px;
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 40px;
+  margin-bottom: 2.5rem;
 }
 
 .last-notification-header {
@@ -231,7 +231,7 @@ h1 {
 
 /* Form Elements */
 #language-container {
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
   width: 100%;
 }
 
