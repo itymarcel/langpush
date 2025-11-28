@@ -62,6 +62,7 @@ class LinguaPush {
     };
 
     // Initialize modules
+    this.speechManager = new SpeechManager();
     this.subscriptionManager = new SubscriptionManager(this);
     this.uiController = new UIController(this);
     this.preferencesManager = new PreferencesManager(this);
@@ -115,9 +116,23 @@ class LinguaPush {
     // Tap to refresh last notification
     if (this.elements.lastNotification) {
       this.elements.lastNotification.addEventListener("click", (e) => {
-        // Only refresh if not clicking on reveal or history button
-        if (!e.target.closest('.reveal-text') && !e.target.closest('.history-button')) {
+        // Only refresh if not clicking on reveal, history button, or speak button
+        if (!e.target.closest('.reveal-text') &&
+            !e.target.closest('.history-button') &&
+            !e.target.closest('.speak-button')) {
           this.sendNowManager.loadLastNotification();
+        }
+      });
+    }
+
+    // Speak button
+    const speakButton = document.querySelector('.speak-button');
+    if (speakButton) {
+      speakButton.addEventListener('click', () => {
+        const text = this.elements.lastNotificationOriginal.textContent;
+        const language = this.elements.languageSelect.value;
+        if (text && this.speechManager.isSupported()) {
+          this.speechManager.speak(text, language);
         }
       });
     }

@@ -146,6 +146,12 @@ h1 {
   stroke-width: 2px;
 }
 
+.last-notification .original-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .last-notification .original {
   position: relative;
   padding-top: 2px;
@@ -325,6 +331,35 @@ h1 {
   border: none;
   background: none;
   color: rgba(0, 0, 0, 1);
+}
+
+.speak-button {
+  padding: 6px;
+  cursor: pointer;
+  box-shadow: none;
+  border: none;
+  background: rgba(0, 0, 255, 0.1);
+  color: rgba(0, 0, 255, 1);
+  border-radius: 999px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speak-button:hover {
+  background: rgba(0, 0, 255, 0.2);
+}
+
+.speak-button:active {
+  background: rgba(0, 0, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.speak-button .ios-icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2px;
 }
 
 /* History Overlay */

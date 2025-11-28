@@ -255,9 +255,19 @@ class SendNowManager {
       const originalContainer = document.querySelector('.last-notification .original');
       const revealText = originalContainer.querySelector('.reveal-text');
       const actualText = originalContainer.querySelector('.actual-text');
+      const speakButton = document.querySelector('.speak-button');
 
       this.app.elements.lastNotificationOriginal.textContent = original;
       this.app.elements.lastNotificationEnglish.textContent = english;
+
+      // Show speak button if speech synthesis is supported
+      if (speakButton && this.app.speechManager.isSupported()) {
+        speakButton.style.display = 'flex';
+        // Initialize icon
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }
 
       // Check if this is a fresh notification from "Get One Now"
       if (this.waitingForFreshNotification) {
@@ -298,6 +308,11 @@ class SendNowManager {
   hideLastNotification() {
     if (this.app.elements.lastNotification) {
       this.app.elements.lastNotification.style.display = 'none';
+    }
+    // Also hide speak button
+    const speakButton = document.querySelector('.speak-button');
+    if (speakButton) {
+      speakButton.style.display = 'none';
     }
   }
 }
