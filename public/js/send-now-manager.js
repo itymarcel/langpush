@@ -271,9 +271,11 @@ class SendNowManager {
 
       // Check if this is a fresh notification from "Get One Now"
       if (this.waitingForFreshNotification) {
-        // Add unrevealed class and show "Reveal" text
+        // Add unrevealed class to both original and last-notification for speaker button
         originalContainer.classList.add('unrevealed');
         originalContainer.classList.remove('revealed');
+        this.app.elements.lastNotification.classList.add('unrevealed');
+        this.app.elements.lastNotification.classList.remove('revealed');
         revealText.style.display = 'block';
         actualText.style.display = 'none';
 
@@ -281,6 +283,8 @@ class SendNowManager {
         const revealHandler = () => {
           originalContainer.classList.remove('unrevealed');
           originalContainer.classList.add('revealed');
+          this.app.elements.lastNotification.classList.remove('unrevealed');
+          this.app.elements.lastNotification.classList.add('revealed');
           revealText.style.display = 'none';
           actualText.style.display = 'block';
           actualText.removeEventListener('click', revealHandler);
@@ -297,6 +301,8 @@ class SendNowManager {
         // Show text normally for existing notifications
         originalContainer.classList.remove('unrevealed');
         originalContainer.classList.add('revealed');
+        this.app.elements.lastNotification.classList.remove('unrevealed');
+        this.app.elements.lastNotification.classList.add('revealed');
         revealText.style.display = 'none';
         actualText.style.display = 'block';
       }

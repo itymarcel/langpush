@@ -357,7 +357,7 @@ h1 {
   justify-content: center;
 }
 
-.original.unrevealed .speak-button {
+.last-notification.unrevealed .speak-button {
   opacity: 0;
   pointer-events: none;
 }
