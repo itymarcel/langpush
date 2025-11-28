@@ -277,16 +277,19 @@ class SendNowManager {
         revealText.style.display = 'block';
         actualText.style.display = 'none';
 
-        // Add click handler to reveal the text
+        // Add click handler to reveal the text (only on the actual text area)
         const revealHandler = () => {
           originalContainer.classList.remove('unrevealed');
           originalContainer.classList.add('revealed');
           revealText.style.display = 'none';
           actualText.style.display = 'block';
-          originalContainer.removeEventListener('click', revealHandler);
+          actualText.removeEventListener('click', revealHandler);
+          revealText.removeEventListener('click', revealHandler);
         };
 
-        originalContainer.addEventListener('click', revealHandler);
+        // Attach to both the reveal text and actual text elements
+        actualText.addEventListener('click', revealHandler);
+        revealText.addEventListener('click', revealHandler);
 
         // Reset the flag
         this.waitingForFreshNotification = false;

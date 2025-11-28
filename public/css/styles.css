@@ -337,13 +337,13 @@ h1 {
   position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
   max-width: 80vw;
 }
 
 .speak-button {
   position: relative;
-
   display: flex;
   padding: 6px;
   cursor: pointer;
@@ -360,10 +360,6 @@ h1 {
 .original.unrevealed .speak-button {
   opacity: 0;
   pointer-events: none;
-}
-
-.speak-button:hover {
-  background: rgba(0, 0, 0, 0.05);
 }
 
 .speak-button:active {
