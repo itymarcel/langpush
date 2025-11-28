@@ -63,6 +63,7 @@ class LinguaPush {
 
     // Initialize modules
     this.speechManager = new SpeechManager();
+    this.devTools = new DevTools(this);
     this.subscriptionManager = new SubscriptionManager(this);
     this.uiController = new UIController(this);
     this.preferencesManager = new PreferencesManager(this);

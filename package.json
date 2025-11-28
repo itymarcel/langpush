@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "start:http": "DISABLE_HTTPS=true node server.js",
-    "dev-express": "nodemon server.js"
+    "dev-express": "nodemon server.js",
+    "dev": "node dev-server.js"
   },
   "dependencies": {
     "@capacitor/cli": "^7.4.3",
